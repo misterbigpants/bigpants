@@ -1,0 +1,1053 @@
+<SCRIPT>
+/*
+Going Live: 4 things
+1. gamesList - don't show all games
+2. configCacheBreaker: last count 16
+3. configDebug = 0
+4. change if (holdCacheBreaker != configCacheBreaker)
+
+Adding a game: 4 Things
+1. Add to gamesList with ID. i.e. TIMEBANDIT
+2. Add DIV with ID TIMEBANDITtext
+3. Add game-TIMEBANDIT.js file
+4. Add DMK/CMD file
+
+Ways Game can be Loaded
+1. Click Link (script already loaded). gamename + index
+2. Pasted (script might not be loaded) gamename + json, don't need script
+3. Params (script might not be loaded). gamename + index 
+4. Link NOT on left that tries to load game (challenges) 
+Note: Links might want to main page (just video)
+
+left:37 up:38 right:39 down:40
+*/
+
+var configCacheBreaker = Math.floor(Math.random() * 10000);
+var configDebug = 1;   // Debug mode adds tedious Load to menus (slow load of .CMD/.DMK game source files that we make snapshots of)
+
+var gamesList = [
+	"OUTHOUSE", "DEFENSECOMMAND", "CRAZYPAINTER", "SCARFMAN"
+	, "PENETRATOR"
+	, "LIBERATOR", "DONKEYKONG", "DANCINGDEMON", "WEERD"
+	, "TIMEBANDIT", "AIRRAID", "FLYINGSAUCERS"
+	, "EMPIRE"
+];
+
+var urlSearchParams = new URLSearchParams(window.location.search);
+var holdCacheBreaker = 0;
+if ((urlSearchParams.get("cachebreaker") != null) && (urlSearchParams.get("cachebreaker").trim() != "")) { holdCacheBreaker = parseInt(urlSearchParams.get("cachebreaker").trim()); }
+if (holdCacheBreaker == 0)
+/// if (holdCacheBreaker != configCacheBreaker)
+{
+	urlSearchParams.set("cachebreaker", "" + configCacheBreaker);
+	location.replace("index.html?" + urlSearchParams.toString());
+	// .replace is asynchronous so code keeps going and gets here and renders the whole page before switching. sigh.
+	document.write("<!-- ");   // don't bother with the rest of this document
+}
+</SCRIPT>
+
+<HTML>
+<HEAD>
+<META name="viewport" content="width=device-width, initial-scale=1">
+
+<STYLE>
+body
+{
+	font-family: Verdana, Geneva, sans-serif; 	
+	color:#ffffff;
+	background:#404040;
+	font-size:16px;
+	margin:0px; padding:20px 0px 0px 20px;
+	overflow:hidden;
+}
+img { border:0;}
+
+a		{ color:#FFDDDD; text-decoration:none; }
+a:hover	{ color:#FFFFFF; }
+
+table { margin:0px; padding:0px 0px 10px 0px; }
+td { margin:0px; padding:10px 30px 0px 0px; vertical-align:top; }
+
+.plain { margin:0px; padding:10px 0px 0px 0px; }
+.plain td { margin:0px; padding:0px 20px 0px 0px; vertical-align:top; }
+
+.treecaret {
+  cursor: pointer;
+  -webkit-user-select: none; /* Safari 3.1+ */
+  -moz-user-select: none; /* Firefox 2+ */
+  -ms-user-select: none; /* IE 10+ */
+  user-select: none;
+}
+
+.treecaret::before {
+  content: "\25B6";
+  color: black;
+  display: inline-block;
+  margin-right: 6px;
+}
+
+.treecaret-down::before {
+  -ms-transform: rotate(90deg); /* IE 9 */
+  -webkit-transform: rotate(90deg); /* Safari */'
+  transform: rotate(90deg);  
+}
+
+.treenested {
+  display: none;
+  list-style-type: none;
+}
+
+.treeactive {
+  display: block;
+}
+
+.maingridcol2 {margin:0px; padding:0px; height:calc(100vh - 50px); overflow-x:auto; overflow-y:auto;}
+.maingridcol2text {margin:0px; padding:0px 40px 0px 15px; max-width:800px; min-width:400px;}
+</STYLE>
+
+<SCRIPT>
+var paramsTempGameName = urlSearchParams.get("gameName");
+var paramsTempGameLevelIndex = urlSearchParams.get("gameLevelIndex");
+
+var gamesListSave = [];
+var gameName = "";
+var gameEverything = null;
+
+var appState = 0;  // 0-No Emulator   1-Emulator Running
+var gameState = 0;   // 0:Uninitialized   1:Game Paused   2:Game Playing
+
+var loadRememberGameType = 0;   // 0-gamesList   1-gamesListSave
+var loadRememberGameLevelIndex = -1;
+
+function LoadGamesList(pGameName, pGameLevelIndex)
+{
+	loadRememberGameType = 0;
+	loadRememberGameLevelIndex = pGameLevelIndex;
+	gameEverything = gamesList[pGameName][pGameLevelIndex];
+	resetgame1();
+}
+
+
+function LoadGamesListSave(pGameName, pGameLevelIndex)
+{
+	loadRememberGameType = 1;
+	loadRememberGameLevelIndex = pGameLevelIndex ;
+	gameEverything = gamesListSave[pGameName][pGameLevelIndex];
+	resetgame1();
+}
+
+
+function resetgame1()
+{
+	stopVideos();
+	for (var index = 0; index < gamesList.length; index++)
+	{
+		document.getElementById(gamesList[index] + "text").style.display = "none";		
+	}
+	
+	// cannot initilaize trsemu-1.5.js in SCRIPT or Body.OnLoad
+	// 1. user must interact with browser BEFORE trsemu-1.5.js can initilaize audio
+	// 2. trsemu-1.5.js also needs body fully loaded
+	if (typeof trsEmu == 'undefined')
+	{
+		var newScript1 = document.createElement("script");
+		newScript1.src = "trsemu-1.6.js?cachebreaker=" + configCacheBreaker;		
+		document.body.appendChild(newScript1);
+		window.setTimeout("resetgame2();", 1000);   // TRSEMU needs some time to sort things out before we can run anything.
+	}
+	else
+	{
+		resetgame2();
+	}
+}
+
+
+function resetgame2()
+{
+	gameName = gameEverything.gameName;   // player may have Outhouse and Defense Command trees both opened, and switched games without re-opening tree
+
+	if (appState < 1) { appState = 1; }
+
+	trsEmu.screen('scrn').button('btn').perf('graph').focus();   // not currently able to remove this
+
+	if (gameState == 1)   // a game is active and paused.
+	{		
+		ToggleGame();
+	}
+	
+	// fresh load of actual command file (once snapshots are created, this is no longer necessary BUT I hate to remove functionality)
+	if (gameEverything.PC == -1)
+	{
+		trsEmu.run(gamesList[gameName + "LOAD"]);
+		// if we were to try a trsEmu.set right here it would NOT work, would have to fire with a timer. window.setTimeout("resetgame3();", 1000);
+		appState = 2;
+	}
+	// if emulator is already running with >something<, then it can take anything
+	else if (appState == 2)
+	{
+		trsEmu.set(gameEverything);	
+	}
+	// emulator not running so start it then feed it the game
+	else
+	{		
+		trsEmu.run('');  
+		trsEmu.set(gameEverything);	
+		appState = 2;
+	}		
+	
+	document.getElementById("maincanvas").style.display = "";
+	document.getElementById("ButtonClose").style.display = "";
+	gameState = 2;   // game is active and running		
+	document.getElementById("ToggleText").innerHTML = "<B>ll</B>";
+	document.getElementById("ButtonPause").style.display = "";
+
+	let holdGameLevelIndex = "";
+	if (loadRememberGameType == 0) { holdGameLevelIndex = "&gameLevelIndex=" + loadRememberGameLevelIndex; }
+	window.history.replaceState(null, "", "index.html?gameName=" + gameName + holdGameLevelIndex + "&cachebreaker=" + configCacheBreaker);
+}
+
+function stopVideos()
+{
+	var frames = document.getElementsByTagName('iframe');
+	for (var i = 0; i < frames.length; ++i) {
+		frames[i].contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+	}
+}
+
+function videoSeekTo(pSeconds)
+{
+	// https://stackoverflow.com/questions/25684693/where-to-pass-arguments-of-postmessage-command-to-youtube-iframe/78707728#78707728
+	var dataObject = {event:"command",func:"seekTo",args:[pSeconds, true]}
+	document.getElementById(gameName + 'iframe').contentWindow.postMessage(JSON.stringify(dataObject), '*');
+	document.getElementById(gameName + 'text').scrollTop = 0;
+	// alternatively
+	// document.getElementById(gameName + 'iframe').contentWindow.postMessage('{"event":"command","func":"seekTo","args":[' + pSeconds + ', true]}', '*');
+}
+
+function refreshSaveList()
+{		
+	stopVideos();
+	
+	let innerHTML = "";
+	let startIndex = 1; if (configDebug) { startIndex = 0; }
+	for (var index = startIndex; index < gamesList[gameName].length; index++)
+	{
+		innerHTML += '<A HREF="javascript:LoadGamesList(\'' + gameName + '\',' + index + ');">' + gamesList[gameName][index].gameTitle + '</A><BR>';
+	}
+
+	gamesListSave[gameName] = [];
+	let hold = null;
+	for (var index = 0; index < 3; index++)
+	{
+		hold = null;
+		hold = localStorage.getItem(gameName + index);
+		if (hold == null)
+		{
+			gamesListSave[gameName][index] = null;
+			innerHTML += 'Empty<BR>';
+		}
+		else
+		{
+			gamesListSave[gameName][index] = JSON.parse(hold);
+			innerHTML += '<A HREF="javascript:LoadGamesListSave(\'' + gameName + '\',' + index + ');">' + gamesListSave[gameName][index].gameTitle + '</A><BR>';
+		}
+	}
+
+	document.getElementById(gameName + "list").innerHTML = innerHTML + "<BR>";
+	
+	if (paramsTempGameLevelIndex != null)
+	{
+		LoadGamesList(gameName, paramsTempGameLevelIndex);		
+		paramsTempGameLevelIndex = null;
+	}	
+}
+
+function TreeCaretOnClick(pThis, pToggle = true, pShowVideo = true)
+{
+	StopGame();
+
+	let newIndex = -1;
+	for (var index = 0; index < gamesList.length; index++)
+	{
+		if (pThis.id == gamesList[index]) { newIndex = index; break; }
+	}
+	if (gameName != gamesList[newIndex]) { pToggle = false; }
+	gameName = gamesList[newIndex];
+
+	if (pToggle)
+	{
+		// Regular toggle = user clicking
+		pThis.parentElement.querySelector(".treenested").classList.toggle("treeactive");
+		pThis.classList.toggle("treecaret-down");
+	}
+	else
+	{
+		// Force Open - user pasted a game here
+		pThis.parentElement.querySelector(".treenested").classList.add("treeactive");
+		pThis.classList.add("treecaret-down");
+	}
+
+	// Show Video for the game
+	if (appState < 2)
+	{
+		document.getElementById("MAINtext").style.display = "none";	
+		for (var index = 0; index < gamesList.length; index++)
+		{
+			document.getElementById(gamesList[index] + "text").style.display = "none";
+		}
+		if (pShowVideo) { document.getElementById(gameName + "text").style.display = ""; }
+		window.history.replaceState(null, "", "index.html?gameName=" + gameName + "&cachebreaker=" + configCacheBreaker);
+	}
+	
+	// average script of 3 saves is ~500KB so we need to load them in.	
+	// have we already downloaded the script?
+	if (typeof gamesList[gameName] == 'undefined')
+	{
+		let js = document.createElement("script");
+		js.id = gameName + "-script";
+		js.src = "game-" + gameName + ".js?cachebreaker=" + configCacheBreaker;
+		js.addEventListener("load", function() { refreshSaveList(); });	
+		document.head.appendChild(js);
+	}
+	else
+	{
+		refreshSaveList();
+	}
+}
+
+function TreeCaretOnClick2(pThis)
+{
+	pThis.parentElement.querySelector(".treenested").classList.toggle("treeactive");
+	pThis.classList.toggle("treecaret-down");
+}
+
+function StopGame()
+{
+	if (appState > 1)
+	{
+		trsEmu.run("stop");
+		document.getElementById(gameName + "text").style.display = "";
+		document.getElementById("maincanvas").style.display = "none";
+		document.getElementById("ButtonClose").style.display = "none";
+		document.getElementById("ButtonPause").style.display = "none";
+		appState = 1;
+	}
+}
+
+function ToggleGame()
+{
+	if (!(typeof trsEmu == 'undefined'))
+	{
+		trsEmu.run("toggle");
+		if (gameState == 2)
+		{
+			// Pause
+			document.getElementById("ToggleText").innerHTML = "<B>&gt;</B>";
+			gameState = 1;
+		}
+		else
+		{
+			// Play
+			document.getElementById("ToggleText").innerHTML = "<B>ll</B>";
+			gameState = 2;
+		}
+	}
+}
+
+function ParamGameStart()
+{
+	if (paramsTempGameName != null)
+	{
+		document.getElementById("PARAMtext").style.display = "none";
+		if (paramsTempGameLevelIndex != null) { showVideo = false; }
+		TreeCaretOnClick(document.getElementById(paramsTempGameName), false, false);   // extra false = don't show video because we're going straight to game
+		paramsTempGameName = null;
+	}
+}
+
+function BodyOnLoad()
+{
+	// create div blocks foe each game
+	let innerHTML = "";
+	for (var index = 0; index < gamesList.length; index++)
+	{
+		innerHTML += '<li>'
+			+ '<span id="' + gamesList[index] + '" class="treecaret" OnClick="TreeCaretOnClick(this);"><B>' + (index + 1) + ' ' + gamesList[index] + '</B></span>'
+			+ '<ul class="treenested" id="' + gamesList[index] + 'list' + '">loading...</ul>'
+			+ '</li>';
+	}
+	document.getElementById("mainmainmenu").innerHTML = innerHTML;
+
+	if (paramsTempGameName != null)
+	{
+		if (paramsTempGameLevelIndex != null)
+		{
+			// URL links to game, need player to display "Click Something" window so player gets sound
+			document.getElementById("PARAMtext").style.display = "";
+			document.addEventListener("click", ParamGameStart, {once : true});
+			document.addEventListener("keyup", ParamGameStart, {once : true});	
+			document.addEventListener("touchstart", ParamGameStart, {once : true});
+		}
+		else
+		{
+			TreeCaretOnClick(document.getElementById(paramsTempGameName), false);
+			paramsTempGameName = null;		
+		}
+	}
+}
+
+
+function BodyOnCopy(event)
+{
+	if (appState == 2)
+	{
+		if (!(typeof trsEmu == 'undefined'))
+		{
+			trsEmu.keyclearall();
+			var hold = trsEmu.get();   // makes a COPY of the current game state
+			hold.gameName = gameName;
+			hold.gameDate = new Date().toString();   // Tue Aug 19 1975 23:15:30 GMT-0400 (Eastern Daylight Time)   // Convert back to Date by doing new Date(string);
+			hold.gameTitle = new Date().toLocaleString(); // "forthcoming";
+
+			var holdS = JSON.stringify(hold);
+			// var holdS = encodeURIComponent(JSON.stringify(hold));
+			event.clipboardData.setData("text/plain", holdS);
+			console.log(holdS);
+		}
+
+		event.preventDefault();
+		event.stopPropagation();
+		return false;
+	}
+}
+
+
+function BodyOnPaste(event)
+{	
+	let holdClipboardData = (event.clipboardData || window.clipboardData).getData("text");
+	if (holdClipboardData != null) 
+	{
+		let holdClipboardDataTrim = holdClipboardData.trim();
+		if (holdClipboardDataTrim != "")
+		{
+			try
+			{
+				gameEverything = JSON.parse(holdClipboardDataTrim);
+				if (typeof gameEverything.gameName != 'undefined')
+				{
+					TreeCaretOnClick(document.getElementById(gameEverything.gameName), false, false);   // ensure Tree is dropped down for this game, more importantly SETS gameName!
+					resetgame1();
+					event.preventDefault();
+					event.stopPropagation();	
+					return false;
+				}
+			}
+			catch { }
+			
+		}
+		
+		// Player didn't paste a game, so pass the paste into trsEMU which turns them into keystrokes
+		if (trsEmu) { trsEmu.keyBufferAdd(holdClipboardData); }
+	}
+
+	event.preventDefault();
+	event.stopPropagation();	
+	return false;
+}
+
+</SCRIPT>
+</HEAD>
+
+<body OnLoad="BodyOnLoad();" OnCopy="BodyOnCopy(event);" OnPaste="BodyOnPaste(event);">
+<DIV Style="display:grid; grid-template-columns:275px calc(100% - 275px);">	
+	<DIV Style="height:calc(100vh - 100px);overflow-x:hidden;overflow-y:auto;">
+		<DIV><A HREF="." Style="color:#AAAAFF;"><B>GAMES I USED TO PLAY</B></A></DIV><BR>
+
+		<ul style="margin:0px;padding:0px;list-style-type:none;" ID='mainmainmenu'></ul><BR>
+
+		<DIV Style="color:#AAAAAA;">
+			<B>CONTROLS</B><BR>
+			<DIV Style="clear:both;"><DIV Style="float:left;width:80px;"><B>Esc</B></DIV><DIV Style="float:left;">Break</DIV></DIV>			
+			<DIV Style="clear:both;"><DIV Style="float:left;width:80px;"><B>\</B></DIV><DIV Style="float:left;">Clear</DIV></DIV>
+			<DIV Style="clear:both;"><DIV Style="float:left;width:80px;"><B>Ctrl+P</B></DIV><DIV Style="float:left;">Pause</DIV></DIV>			
+			<DIV Style="clear:both;"><DIV Style="float:left;width:80px;"><B>Ctrl+S</B></DIV><DIV Style="float:left;">Save</DIV></DIV>			
+			<DIV Style="clear:both;"><DIV Style="float:left;width:80px;"><B>Ctrl+L</B></DIV><DIV Style="float:left;">Load</DIV></DIV>
+			<DIV Style="clear:both;"><DIV Style="float:left;width:80px;"><B>Ctrl+C</B></DIV><DIV Style="float:left;">Copy</DIV></DIV>
+			<DIV Style="clear:both;"><DIV Style="float:left;width:80px;"><B>Ctrl+V</B></DIV><DIV Style="float:left;">Paste</DIV></DIV>
+			<DIV Style="clear:both;"></DIV>
+		</DIV>
+	</DIV>
+
+	<DIV ID="MAINtext" Class="maingridcol2">
+		<DIV Class="maingridcol2text">
+			<DIV Style="color:#AAAAFF;"><B>WELCOME</B></DIV>
+			<BR>
+			Greetings you absolute weirdo. My name is Jim McGinley and I played these games 42 years ago.
+			Click a game, watch the video, <B>then click a level to play right now</B>!
+			A TRS-80 Model III emulated in your browser? Truly it's 2024!
+			Most games start boring so I recommend the higher levels.
+			I love these games, and now you'll love them - all 16 kilobytes.<BR>
+			<BR>
+			
+			You can reload your game (<B>Ctrl+L</B>) and save (<B>Ctrl+S</B>) - 3 slots per game.
+			You can copy a game (<B>Ctrl+C</B>),  paste it into an e-mail (<B>Ctrl+V</B>) and send it to a friend. They can paste it into this site and continue <B>your</B> game!
+			Should you reach higher levels or find interesting moments e-mail them to me (jim@bigpants.ca) for main menu consideration.<BR>
+			<BR>
+
+			Consider buying <A HRef="https://store.steampowered.com/app/1299860/Endlight/" Target="NewEndlight">Endlight</A>, our chaotic action game with a TRS-80 heart.<BR>
+			<BR>
+
+			<ul style="margin:0px;padding:0px;list-style-type:none;">
+				<li><span class="treecaret" OnClick="TreeCaretOnClick2(this);"><B>NEWS</B></span><ul class="treenested" Style="color:#CCCCCC;">
+					<TABLE Style="color:#CCCCCC;">
+						<TR><TD Style="Width:125px;"><B>July 7, 2024</B></TD><TD>Added Challenges</TD></TR>
+						<TR><TD Style="Width:125px;"><B>July 6, 2024</B></TD><TD>Added Penetrator</TD></TR>
+						<TR><TD><B>July 2, 2024</B></TD><TD>Added Scarfman</TD></TR>
+						<TR><TD><B>July 1, 2024</B></TD><TD>Added Outhouse, Defense Command, Crazy Painter</TD></TR>
+						<TR><TD><B>July 1, 2024</B></TD><TD>Released website v1.0</TD></TR>
+					</TABLE>
+					<BR>
+				</ul></li>
+
+				<li><span class="treecaret" OnClick="TreeCaretOnClick2(this);"><B>ABOUT</B></span><ul class="treenested" Style="color:#CCCCCC;">
+					"The Games I Used to Play" showcases the games I used to play on my  <A HRef="https://en.wikipedia.org/wiki/TRS-80" Target="NewTRS">TRS-80</A> 42 years ago.
+					Every week I'll be releasing a TRS-80 game and an accompanying video for those of you with no time to play.
+					Despite the gap, I can play these games better than ever.<BR>
+					<BR>
+					
+					This is only possible thanks to<BR><BR>
+					<UL>
+					<LI>The original <A HREf=" http://www.48k.ca/trs80gp.html" Target="NewTRS80Emulator2">trs80gp - A TRS-80 Model 1,2,3,4,12,16,6000,MC-10,Color Computer,DT-1,Videotex Emulator</A> created by George Phillips<BR><BR></LI>
+					<LI>The <A HRef="http://trsjs.48k.ca/" Target="NewTRS80Emulator1">TRS-80 Model III Emulator in Javascript</A> created by Peter Phillips (ported the above)<BR><BR></LI>
+					<LI>The orginal game developers (many have officially released their games to the public domain)<BR><BR></LI>
+					<LI>People preserving the original games <A Ref="" Target="NewIra">Welcome To Ira Goldklang's TRS-80 Revived Site</A>, <A HRef="https://willus.com/trs80/" Target="NewBig">The Big List of TRS-80 Software</A><BR><BR></LI>
+					</UL>
+					
+					What do I bring to the table?<BR>
+					<B>My looks.</B><BR>
+					<BR>
+				</ul></li>
+
+				<li><span class="treecaret" OnClick="TreeCaretOnClick2(this);"><B>CONTROLS</B></span><ul class="treenested" Style="color:#CCCCCC;">
+					<!--
+					<TABLE>
+					<TR><TD Style="Width:100px;"><B>Esc</B></TD><TD Style="Width:150px;">TRS-80 Break</TD><TD></TD></TR>
+					<TR><TD><B>\</B></TD><TD>TRS-80 Clear</TD><TD></TD></TR>
+					<TR><TD><B>Ctrl+S</B></TD><TD>Save</TD><TD>save permanently, 3 slots per game</TD></TR>
+					</TABLE>
+					-->
+					<DIV>
+						<DIV Style="clear:both;"><DIV Style="float:left;width:100px;"><B>Esc</B></DIV><DIV Style="float:left;">Trs-80 Break</DIV><DIV Style="float:left;"></DIV></DIV>			
+						<DIV Style="clear:both;"><DIV Style="float:left;width:100px;"><B>\</B></DIV><DIV Style="float:left;">Trs-80 Clear</DIV><DIV Style="float:left;"></DIV></DIV>
+						<DIV Style="clear:both;"><DIV Style="float:left;width:100px;"><B>Ctrl+P</B></DIV><DIV Style="float:left;width:100px;">Pause</DIV><DIV Style="float:left;">the washroom calls</DIV></DIV>			
+						<DIV Style="clear:both;"><DIV Style="float:left;width:100px;"><B>Ctrl+S</B></DIV><DIV Style="float:left;width:100px;">Save</DIV><DIV Style="float:left;">save permanently, you have 3 slots per game</DIV></DIV>			
+						<DIV Style="clear:both;"><DIV Style="float:left;width:100px;"><B>Ctrl+L</B></DIV><DIV Style="float:left;width:100px;">Load</DIV><DIV Style="float:left;">load latest save</DIV></DIV>
+						<DIV Style="clear:both;"><DIV Style="float:left;width:100px;"><B>Ctrl+C</B></DIV><DIV Style="float:left;width:100px;">Copy</DIV><DIV Style="float:left;">copy game to memory</DIV></DIV>
+						<DIV Style="clear:both;"><DIV Style="float:left;width:100px;"><B>Ctrl+V</B></DIV><DIV Style="float:left;width:100px;">Paste</DIV><DIV Style="float:left;">restore copy, preserve in text document,<br>e-mail to friend, share on website</DIV></DIV>
+						<DIV Style="clear:both;"></DIV>
+					</DIV>
+					<DIV Style="clear:both;"></DIV>
+				</ul></li>
+
+				<li><span class="treecaret" OnClick="TreeCaretOnClick2(this);"><B>CHALLENGES</B></span><ul class="treenested" Style="color:#CCCCCC;">
+					<OL>
+						<LI><A HREF='javascript:paramsTempGameLevelIndex=3;TreeCaretOnClick(document.getElementById("SCARFMAN"), false, false);'>Scarfman - Beat Skill Level 9</A> without dying</LI>
+						<LI><A HREF='javascript:paramsTempGameLevelIndex=7;TreeCaretOnClick(document.getElementById("PENETRATOR"), false, false);'>Penetrator - Blow Up The Base</A> drop a bomb (spacebar) at the perfect time</LI>
+					</OL>
+				</ul></li>
+
+			</ul>
+
+		</DIV>
+	</DIV>
+
+	<DIV ID="OUTHOUSEtext" Class="maingridcol2" Style="display:none;">		
+		<DIV><iframe ID="OUTHOUSEiframe" Style="width:calc(100vw - 340px);height:calc((100vw - 340px) * 0.5625);" src="https://www.youtube-nocookie.com/embed/pAXy24U_Gts?enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></DIV>
+		<DIV Class="maingridcol2text">
+			<DIV Style="Color:#AAAAFF;padding:10px 0px 0px 0px;"><B>J. Weaver Jr. - 1982</B></DIV>
+			<TABLE Class="plain">
+			<TR><TD>Best Moments</TD><TD><A HRef="javascript:videoSeekTo(8 * 60 + 5);">8:05</A> &nbsp;&nbsp;&nbsp; <A HRef="javascript:videoSeekTo(9 * 60 + 30);">9:30</A> &nbsp;&nbsp;&nbsp; <A HRef="javascript:videoSeekTo(11 * 60 + 0);">11:00</A></TD></TR>
+			<TR><TD>Distributed By</TD><TD>Soft Sector Marketing, Inc.</TD></TR>
+			<TR><TD>Playable Area</TD><TD>128 x 39</TD></TR>
+			</TABLE>
+			<BR>
+			
+			Outhouse is one of the greatest games ever made. 
+			The TRS-80's answer to <A HRef="https://en.wikipedia.org/wiki/Robotron:_2084" Target="NewRobotron">Robotron</A> (the greatest game ever made).
+			A perfect marriage of theme and gameplay, which is a rare thing indeed.
+			There's nothing you can do to make Outhouse better.
+			The limitations of the TRS-80 work in the games favour, rather than against it.
+			Outhouse must be played with a keyboard. i.e. switching directions with a joystick/thumbstick would be problematic at higher levels.<BR>
+			<BR>
+			
+			In the video I attempt to beat Level 18 <B>without</B> smart bombs (the refuge of the weak).
+			No human has ever seen Level 18, so consider yourself lucky.
+			While I'm not using any cheats, I am constantly saving and reloading.<BR>
+			<BR>
+
+			Consider buying <A HRef="https://store.steampowered.com/app/1299860/Endlight/" Target="NewEndlight">Endlight</A>, our chaotic action game with TRS-80 guts.<BR>
+			<BR>
+			
+			<B>STUFF</B><BR>			
+			<UL>
+				<LI>
+					<A HRef="http://www.trs-80.org/interview-j-weaver/" Target="NewOuthouseInterview">Article: Brilliant Interview With J. Weaver Jr</A><BR>
+					"Finish one of today’s games and 'win' the credit roll — you’ll watch a hundred names go by. To me, that’s like working on an assembly line in Detroit, which I went to college to try to avoid in the first place."<BR>
+					<BR>
+				</LI>
+
+				<LI>
+					<A HRef="https://www.youtube.com/watch?v=erHJegZ0BH0" Target="NewOuthouseColorComputer">Video: Outhouse on the TRS-80 Color Computer</A><BR>
+					While I've never played it myself, it feels very different. And by different I mean bad.
+					I blame the CoCo.<BR>
+					<BR>
+				</LI>
+
+				<LI>
+					<A HRef="https://gdcvault.com/play/1015922/Inspiration-from-the-Trash-The" Target="NewOuthouseInspiration">Video: Inspiration from the Trash: The TRS-80's Lost Game Designs</A><BR>
+					At GDC 2012, I define the TRS-80 aesthetic using Outhouse as a prime example.<BR>
+					<BR>
+				</LI>
+
+				<LI>
+					<A HREf="https://youtu.be/Dhg0UAmdm3c?t=2953" Target="NewOuthouseTandyAssembly">Video: Tandy Assembly 2018</A><BR>
+					I play Outhouse live in front of an audience of TRS-80 fans. Do I make history and beat Level 18? Does my daughter come running in to congratulate me?<BR>
+					<BR>
+				</LI>
+
+				<LI>
+					<A HRef="https://syutaka.itch.io/doubt-house" Target="NewOuthouseDoubt">Game: dOUbT HOUSE</A> (2020)<BR>
+					a free modern, mouse controlled remake by Syusuke_Takaoka<BR>
+					<BR>
+				</LI>
+
+				<LI>
+					<A HREf="https://ericomont.itch.io/the-outhouse" Target="NewOuthouseFUED">Game: The Outhouse</A> (2020)<BR>
+					a chunky colouful pixel remake by FUED<BR>
+					<BR>
+				</LI>
+			</UL>
+
+			<IMG Src="game-OUTHOUSEImage1.jpg" Style="width:100%;height:auto;">
+		</DIV>
+	</DIV>
+
+	<DIV ID="DEFENSECOMMANDtext" Class="maingridcol2"  Style="display:none;">
+		<DIV><iframe ID="DEFENSECOMMANDiframe" Style="width:calc(100vw - 340px);height:calc((100vw - 340px) * 0.5625);" src="https://www.youtube-nocookie.com/embed/_ZVYTrDoOPI?enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></DIV>
+		<DIV Class="maingridcol2text">
+			<DIV Style="Color:#AAAAFF;padding:10px 0px 0px 0px;"><B>Bill Hogue and Jeff Konyu - 1982</B></DIV>
+			<TABLE Class="plain">
+			<TR><TD>Best Moments</TD><TD><A HRef="javascript:videoSeekTo(3 * 60 + 53);">3:53</A> &nbsp;&nbsp;&nbsp; <A HRef="javascript:videoSeekTo(7 * 60 + 55);">7:55</A> &nbsp;&nbsp;&nbsp; <A HRef="javascript:videoSeekTo(9 * 60 + 58);">9:58</A></TD></TR>
+			<TR><TD>Company</TD><TD>Big Five Software</TD></TR>
+			<TR><TD>Playable Area</TD><TD>128 x 48</TD></TR>
+			</TABLE>
+			<BR>
+
+			Despite the gap (and thanks to modern save & reload) I managed to reach 56,000+ points which showcases this unique classic at its absolute best. Accept no substitutes.
+			Defense Command was one of the later games created by legendary TRS-80 game developer Big Five Software.
+			Every Big Five Software game has a signature eyeball enemy - look for it.		
+			Today we'd call Defense Command a 2nd or 3rd generation game, where the developers finally understood the hardware inside and out, and could use every trick in the book.<BR>
+			<BR>
+			
+			As far as I know, Defense Command's unique design (the bastard child of Defender and Galaga) has been completely forgotten.
+			Additionally, the standard Space Invaders performance trick of allowing the player only one bullet in the air at a time has been elevated here - likely unintentionaly.
+			If you can align multiple enemies above you, you can essentialy fire <B>many single shots in a row</B> destroying enemies instantly.
+			This feels incredible and is essential at higher levels.<BR>
+			<BR>
+
+			Consider buying <A HRef="https://store.steampowered.com/app/1299860/Endlight/" Target="NewEndlight">Endlight</A>, our chaotic action game with TRS-80 soul.<BR>
+			<BR>
+			
+			<B>STUFF</B><BR>
+			<UL>
+				<LI>
+					<A HRef="http://www.trs-80.org/defense-command/" Target="NewMatthewReedDefense">Article: Matthew Reed writes about Defense Command</A><BR>
+					"In my opinion, Defense Command is the most impressive of the Big Five Software games for the TRS-80."<BR>
+					<BR>
+				</LI>
+
+				<LI>
+					<A HRef="https://www.youtube.com/watch?v=GNKBc-nuj50" Target="NewGoodMorning">Video: Good Morning America Interviews Bill Hogue and Jeff Konyu</A><BR>
+					Bill Hogue was 20 and Jeff Konyu was 16. "Their company made half a million dollars last year." Truly they were the TRS-80 Carmack and Romero.<BR>
+					<BR>
+				</LI>
+				
+				<LI>
+					<A HREf="https://archive.org/details/Games_Pack_2_1983_Tandy/page/n3/mode/2up" Target="NewDefenseCommandManual">Article: Defense Command Manual</A><BR>
+					"Guard the fuel cells from the evil Kromorfkrom warriors until one of Earth's Star Cruisers can warp in and reclaim the cells for our side."
+					"The ominous Kromorfkrom Transport Vessel will appear when the game begins."<BR>
+					<BR>
+				</LI>
+				
+				<LI>					
+					<A HRef="https://en.wikipedia.org/wiki/Big_Five_Software" Target="NewBigFiveSoftwareWiki">Article: Big Five Software Wiki</A><BR>
+					"The company's biggest release came after moving away from the black and white TRS-80." Boo!<BR>
+					<BR>
+				</LI>
+				
+				<LI>
+					<A HRef="https://web.archive.org/web/20190914011150/http://www.bigfivesoftware.com/" Target="NewBigFiveSoftwareInternetArchive">Article: Big Five Software Internet Archive</A><BR>
+					"It's somewhat amusing for me to observe that there seems to be more interest in my games today than there was fifteen years ago!"<BR>
+					<BR>
+				</LI>
+
+				<LI>
+					<A HRef="https://archive.org/details/80_Micros_Review_Guide_1st_Edition_1983_Wayne_Green_Inc/page/n113/mode/1up">Article: 1982 Review by Tim Knight</A><BR>
+					"Defense Command is a superb game and an original idea. The sounds, graphics, and voices are excellent. Instead of being an imitation of some other arcade game, it is new and a great deal of fun."<BR>
+				</LI>
+			</UL>
+			
+			<IMG Src="game-DEFENSECOMMANDImage1.png" Style="width:100%;height:auto;">
+		</DIV>
+	</DIV>
+
+	<DIV ID="CRAZYPAINTERtext" Class="maingridcol2"  Style="display:none;">
+		<DIV><iframe ID="CRAZYPAINTERiframe" Style="width:calc(100vw - 340px);height:calc((100vw - 340px) * 0.5625);" src="https://www.youtube-nocookie.com/embed/CdiHbnn97Bg?enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></DIV>
+		<DIV Class="maingridcol2text">
+			<DIV Style="Color:#AAAAFF;padding:10px 0px 0px 0px;"><B>Robert Pappas - 1982</B></DIV>
+			<TABLE Class="plain">
+			<TR><TD>Best Moments</TD><TD><A HRef="javascript:videoSeekTo(2 * 60 + 0);">2:00</A> &nbsp;&nbsp;&nbsp; <A HRef="javascript:videoSeekTo(5 * 60 + 30);">5:30</A> &nbsp;&nbsp;&nbsp; <A HRef="javascript:videoSeekTo(19 * 60 + 0);">19:00</A></TD></TR>
+			<TR><TD>Company</TD><TD>The Cornsoft Group</TD></TR>
+			<TR><TD>Playable Area</TD><TD>128 x 45</TD></TR>
+			</TABLE>
+			<BR>
+
+			Watch me paint the entire screen white, fulfilling a primal desire I still can't suppress. I finish multiple levels and showcase the criminally overlooked bonus stages.
+			I also try to beat Level 9 which is impossible. An action game without shooting did NOT exist in 1982, and I don't believe this design has ever been copied.
+			Hopefully casinos (and mobile game makers) don't watch this video.<BR>
+			<BR>
+
+			Consider buying <A HRef="https://store.steampowered.com/app/1299860/Endlight/" Target="NewEndlight">Endlight</A>, our chaotic action game that kicks TRS-80 ass.<BR>
+			<BR>
+
+			If you modernize Crazy Painter<BR>
+			<OL>
+				<LI>
+					Keep the chunkiness (128 x 48). Huge pixels are necessary<BR>
+					<BR>
+				</LI>
+				
+				<LI>
+					Remove the enemies. All I want to do is paint. I don't need anything more.
+					If you must add enemies have them die in an explosion of paint that covers the screen helping me
+					(also ensure they don't <A HRef="javascript:videoSeekTo(22 * 60 + 52);">spawn near player</A>)<BR>
+					<BR>
+				</LI>
+				
+				<LI>
+					Slow player movement so brush can be easily aligned, or add a key I can hold down to "snap to grid".
+					Worth noting touch screen support would likely be brilliant, and render this moot<BR>
+					<BR>
+				</LI>
+				
+				<LI>
+					If you follow this advice, you'll make millions*
+				</LI>
+			</OL>
+
+			<B>Spacebar Strategy Clarification</B><BR>
+			When you hit spacebar, the code checks whether the entire screen is filled.
+			Code loops from top left to bottom right exiting when it finds a black pixel. This is typically fast.
+			However, if you paint from top left to bottom right, it takes longer and longer to reach a black pixel, so holding spacebar now slows the game down.
+			If you remake Crazy Painter, make this official!<BR>
+			<BR>
+
+			<B>Note to Jim</B><BR>
+			Emergent was the word you were looking for. i.e. Crazy Painter had emergent gameplay<BR>
+			<BR>
+
+			<B>STUFF</B><BR>
+			<UL>
+				<LI>
+					<A HREf="http://www.trs-80.org/crazy-painter/" Target="NewMatthewReed">Article: Matthew Reed writes about Crazy Painter</A><BR>
+					"I have always liked Crazy Painter because it is such a change of pace from other games"<BR>
+					<BR>
+				</LI>
+
+				<LI>
+					<A HREf="https://archive.org/stream/Creative_Computing_1983-03/Creative_Computing_1983-03_djvu.txt" Target="NewCrazyPainterInternetArchive">Article: Creative Computing 1983 Review</A><BR>
+					"I like Crazy Painter because as the  game progresses in difficulty levels, different creatures are brought into play. " so ... so ... wrong<BR>
+					<BR>
+				</LI>
+
+				<LI>
+					<A HREf="https://www.youtube.com/watch?v=tVedzvk3uzw" Target="NewCrazyPainterCoCo">Video: Crazy Painter on the CoCo</A><BR>
+					While it lacks our fabled chunkiness, the challenge stage now has a <B>SQUEEGEE!</B><BR>
+					<BR>
+				</LI>
+				<LI>
+					<A HREf="https://archive.org/details/Crazy_Painter_1982_Cornsoft_Group/page/n1/mode/2up" Target="NewCrazyPainterManual1">Article: Manual v1.0</A><BR>
+					"Become a "Crazy Painter" and create a masterpiece ... if you can."
+					"A mischievous dog, snakes and poisonous turpentine buckets force changes in your painting. In higher skill levels, "paint eaters" start chewing up your work. Suddenly, everyone's a critic."<BR>
+					<BR>
+				</LI>
+				<LI>
+					<A HREf="game-CRAZYPAINTERManual1.pdf" Target="NewCrazyPainterManual2">PDF: Manual v2.0</A><BR>
+					"Exclusive Bonus Stage: Stop as many CRAZY PAINTER characters as possible without reaching 100." Wait... <B>WHAT?!</B><BR>
+				</LI>
+			</UL>
+			
+			* = and owe me half<BR>
+			<BR>
+			
+			<IMG Src="game-CRAZYPAINTERImage1.jpg" Style="width:100%;height:auto;">			
+		</DIV>
+	</DIV>
+
+	<DIV ID="SCARFMANtext" Class="maingridcol2" Style="display:none;">
+		<DIV><iframe ID="SCARFMANiframe" Style="width:calc(100vw - 340px);height:calc((100vw - 340px) * 0.5625);" src="https://www.youtube-nocookie.com/embed/3edOlW42SLQ?enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></DIV>
+		<DIV Class="maingridcol2text">
+			<DIV Style="Color:#AAAAFF;padding:10px 0px 0px 0px;"><B>Philip Oliver - 1981</B></DIV>
+			<TABLE Class="plain">
+			<TR><TD>Best Moments</TD><TD><A HRef="javascript:videoSeekTo(5 * 60 + 35);">5:35</A> &nbsp;&nbsp;&nbsp; <A HRef="javascript:videoSeekTo(7 * 60 + 33);">7:33</A></TD></TR>
+			<TR><TD>Company</TD><TD>The Cornsoft Group</TD></TR>
+			<TR><TD>Playable Area</TD><TD>32 x 20 but you could argue 16 x 10</TD></TR>
+			<TR><TD>Memory</TD><TD>16KB</TD></TR>
+			</TABLE>
+			<BR>
+			
+			Scarfman is a fast, chunky, 5 ghost Pac Man clone.
+			The power pellets initially last forever, which is heaven.
+			Eating a dot plays a sound which slightly pauses the game so you FEEL every bite.
+			Against all odds, they built a better beast.
+			The Atari 2600 Pac Man released a year later and sold millions. I never recovered.<BR>
+			<BR>
+						
+			Thanks to many reloads, I reached fabled Skill Level 9. The monsters are much smarter, and the power pellets don't last long.
+			At this point you're using power pellets exclusively to eat dots (avoid eating monsters, they intefere too quickly).
+			Scarfman does not appear to go beyond Skill Level 9, which might be a good thing.
+			I no longer hear the munching sound.<BR>
+			<BR>
+			
+			When I was a child, I wondered where the scarf was.<BR>
+			As an adult, I still wonder.<BR>
+			<BR>
+
+			Consider buying <A HRef="https://store.steampowered.com/app/1299860/Endlight/" Target="NewEndlight">Endlight</A>, our chaotic action game with TRS-80 street cred.<BR>
+			<BR>
+			
+			<B>STUFF</B><BR>
+			<UL>			
+				<LI>
+					<A HREf="https://archive.org/details/Space_Gamer_54/page/32/mode/2up" Target="NewScarfmanDanReview">Article: 1982 Review of Scarfman by Dan Eckblaw in "Space Gamer"</A> (Issue 54, Page 32)<BR>
+					"I’ve found that this game loses its novelty after a few <B>WEEKS</B> and will spend the rest of its days sitting on a shelf" even in those early days, gamers were a demanding lot :)<BR>
+					<BR>
+				</LI>
+
+				<LI>
+					<A HRef="http://www.trs-80.org/scarfman/" Target="NewScarfmanMatthew">Article: Matthew Reed reviews Scarfman</A><BR>
+					"I think it is the best of the Pac-Man games for the TRS-80."<BR>
+					<BR>
+				</LI>
+
+				<LI>
+					<A HRef="https://archive.org/details/Scarfman_1981_Cornsoft_Group/mode/2up" Target="NewScarfmanManual1">Article: Manual v1</A><BR>
+					"Will you SCARF your way to victory? Can you avoid the MONSTERS that guard the maze?"
+					"Nine progressive skill levels make the game more difficult as you get better. Do you have what it takes to reach skill level 9?"
+					I had what it takes!<BR>
+					<BR>
+				</LI>
+			
+				<LI>
+					<A HRef="https://archive.org/details/Scarfman_1981_Cornsoft_Group_a/page/n1/mode/2up" Target="NewScarfmanManual2">Article: Manual v2</A><BR>
+					"Our experience with this game is that it is habit forming. It is not unusual to sit at the game for over 2 hours at a time.
+					The Indianapolis (and world) record is currently at 200,920 points. A good game is 75,000 points. You get a bonus man at 20,000 points which makes the game last longer."<BR>
+					<BR>
+				</LI>
+			</UL>
+
+			<IMG Src="game-SCARFMANImage1.png" Style="width:100%;height:auto;">
+		</DIV>
+	</DIV>	
+
+	<DIV ID="DANCINGDEMONtext" Class="maingridcol2" Style="display:none;">
+	<B>Important</B><BR>
+	We don't preserve anything on saved to disk.
+	On the Dancing Demon menu, Saving and Loading songs doesn't work.
+	However, by Saving <B>Ctrl+S</B> you effecgtively save the routine you're working on.
+	You can also Copy <B>Ctrl+C</B> and Paste <B>Ctrl+V</B> your routines locally.
+	Put them all in one text file!<BR>
+	<BR>
+	</DIV>	
+
+	<DIV ID="PENETRATORtext" Class="maingridcol2" Style="display:none;">
+		<DIV><iframe ID="PENETRATORiframe" Style="width:calc(100vw - 340px);height:calc((100vw - 340px) * 0.5625);" src="https://www.youtube-nocookie.com/embed/XbXGahP5fsA?enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></DIV>
+		<DIV Class="maingridcol2text">
+			<DIV Style="Color:#AAAAFF;padding:10px 0px 0px 0px;"><B>Philip Case - 1982</B></DIV>
+			<TABLE Class="plain">
+			<TR><TD>Best Moments</TD><TD><A HRef="javascript:videoSeekTo(2 * 60 + 21);">2:21</A> &nbsp;&nbsp;&nbsp; <A HRef="javascript:videoSeekTo(6 * 60 + 39);">6:39</A> &nbsp;&nbsp;&nbsp; <A HRef="javascript:videoSeekTo(7 * 60 + 24);">7:24</A></TD></TR>
+			<TR><TD>Company</TD><TD>Melbourne House</TD></TR>
+			<TR><TD>Playfield</TD><TD>128 x 48</TD></TR>
+			</TABLE>
+			<BR>
+
+			<B>Important</B><BR>
+			We don't preserve anything on saved to disk.
+			On the Penetrator menu, Saving and Loading custom levels doesn't work.
+			However, by Saving <B>Ctrl+S</B> you effectively save the level you're working on.
+			You can also Copy <B>Ctrl+C</B> and Paste <B>Ctrl+V</B> your level locally.
+			Put them all in one text file!<BR>
+			<BR>
+			
+			<B>Controls</B>
+			<TABLE Class="plain">
+			<TR><TD>Break + Clear</TD><TD>Skip Title Screen Drawing</TD></TR>
+			<TR><TD>Break + Clear (again)</TD><TD>Skip Title Screen Siren</TD></TR>
+			<TR><TD>Arrow Keys</TD><TD>Move</TD></TR>
+			<TR><TD>X >or< Right Arrow</TD><TD><B>Moves and Shoots</B> - rapidly press to shoot, hold to move</TD></TR>
+			<TR><TD>Z >or< Spacebar</TD><TD>Drop Bombs</TD></TR>			
+			</TABLE>
+			<BR>
+
+			(from the manual) "You must penetrate each of these defense rings, and blow up the illegal neutron bonb store."
+			... and thus the name "Penetrator"<BR>
+			<BR>
+
+			Penetrator is an amazing clone of Konami's far-less-chunky but nowhere-near-as-fun <A HRef="https://www.youtube.com/watch?v=R_zO5pZJOjU" Target="NewScramble">Scramble</A>.
+			Right arrow shoots AND moves player right - a bizarre scheme that somehow works, and has never been seen again.
+			Worth noting that shooting is unreliable, unsure if that's exasperated by the emulator.
+			The 3D rotation animation of the enemy radar stations remains immaculate.
+			You can also edit the landscapes (did someone say modding)!<BR>
+			<BR>
+			
+			To save memory (they had 16KB total to work with), the detailed landscape is stored as 2 values (top and bottom) for each x co-ordinate.
+			Height differences are connected when rendered.
+			A genius approach, and perhaps the first game to use heightmaps.			
+			Penetrator also features the <A HREf="javascript:videoSeekTo(7 * 60 + 30);">greatest explosion</A> in TRS-80 history.<BR>
+			<BR>
+
+			Consider buying <A HRef="https://store.steampowered.com/app/1299860/Endlight/" Target="NewEndlight">Endlight</A>, our chaotic action game with TRS-80 breasts.<BR>
+			<BR>
+
+			<B>Tips</B>
+			<UL>
+			<LI>(from the 1982 manual!) "If you stay too far to the left of your screen or too far to the right you will not be able to use that extra thrust or brake to avoid enemy missiles. Keep your fighter in such a position as to maintain maximuim flexibility."<BR>
+				<BR>
+			<LI>Always bomb - there's no drawback. Keep shooting unless you're in tight spaces (due to same key design, shooting also moves you)<BR>
+				<BR>
+			</LI>
+			<LI>All bombs follow the <B>exact same arc</B>, player movement has <B>no impact</B>. Learn that arc and aiming is easy - even from up high. Physics engines - just say no.<BR>
+				<BR>
+			<LI>Every missed radar adds to your GTA danger level, then missiles start moving horizontally to get you (it's somewhat disturbing). Danger level doesn't reset until you destroy the "neutron bomb store".<BR>
+				<BR>
+			</LI>
+			</UL>
+
+			<!--
+			no relationship between ship and landscape
+			no ability to fit through tight spaces
+
+			New Penetrator
+			- "throw" dropped bombs with physics
+			- fix shooting, different button - can slow down or speed it up with player speed
+			- more granular - even easier to align - bullets and dropped bombs should home in somewhat
+			-->
+			
+			<B>STUFF</B><BR>
+			<UL>
+				<LI>
+					<A HRef="https://archive.org/details/byte-magazine-1982-12/page/n163/mode/2up?q=penetrator" Target="NewPenetratorReviewStan">Article: 1982 Review by Stan Wszola for BYTE</A><BR>
+					<!-- Byte Magazine Volume 07 Number 12 - Game Plan 1982 (page 162) -->
+					He mistakenly labels the paratroopers as parachutists, an idea I love.<BR>
+				</LI>
+			</UL>
+
+			<UL>
+				<LI>
+					<A HRef="https://archive.org/details/80_Micros_Review_Guide_1st_Edition_1983_Wayne_Green_Inc/page/n136/mode/1up" Target="NewPenetratorReviewMichael">Article: 1982 Review by Michael E. Nadeau for 80 Micro</A><BR>
+					"The documentation is better than it probably has to be - a small booklet instead of a one-or-two-page instruction sheet."<BR>
+				</LI>
+			</UL>
+
+			<UL>
+				<LI>
+					<A HREf="https://archive.org/details/Penetrator_1982_Beam_Software/mode/2up" Target="NewPenetratorManual">Manual</A><BR>
+					This documentation is indeed <B>fantastic</B>, and includes a "strategies" section that's <B>actually helpful</B>:
+					"In Stage Four, the enemy paratroopers will be hiding and waiting in ambush. Try to lure then out of their hiding place and then either shoot then while braking, or thrust quickly while going up to fly over them."<BR>
+				</LI>
+			</UL>
+
+			<UL>
+				<LI>
+					Videos: Colours aside: Far, <B>FAR</B> inferior versions<BR>
+					<A HRef="https://www.youtube.com/watch?v=hgfrGxCBSvM&t=37s" Target="NewPenetratorZX">ZX Spectrum 48K - Penetrator (1983)</A> released on Steam in 2022<BR>
+					<A HRef="https://www.youtube.com/watch?v=3d6JEkz9ccY&t=5s" Target="NewPenetratorV641">Commodore 64 - Penetrator (1987)</A> awesome SID chiptunes<BR>
+					<A HRef="https://www.youtube.com/watch?v=5fIPIyp10gk&t=14s" Target="NewPenetratorV642">Commodore 64 - Super Penetrator (1993)</A> a full return Scramble but slooooow<BR>
+					<A HRef="https://www.youtube.com/watch?v=sG56T9NhAXw&t=52s" Target="NewPenetratorAtari">Atari 2600 Homebrew - Scramble (2016)</A> actually this looks <B>incredible</B><BR>
+				</LI>
+			</UL>
+
+			<UL>
+				<LI>
+					Videos: Key Inspirations<BR>
+					<A HRef="https://www.youtube.com/watch?v=R_zO5pZJOjU&t=20" Target="NewScramble">Arcade - Scramble (1981)</A> the one, the only, the original<BR> 
+					<A HRef="https://www.youtube.com/watch?v=cKNhJxwD3Dw&t=39" Target="NewPenetratorSuperCobra">Arcade - Super Cobra (1981)</A> the sleek, sharp, sequel<BR>				
+				</LI>
+			</UL>
+			<BR>
+
+			<IMG Src="game-PENETRATORImage2.jpg" Style="width:100%;height:auto;">
+		</DIV>
+	</DIV>
+
+	<DIV ID="WEERDtext" Class="maingridcol2" Style="display:none;">
+	</DIV>
+
+	<DIV ID="LIBERATORtext" Class="maingridcol2" Style="display:none;">
+	https://youtu.be/EXlp4AX-iks?t=1983
+	16KB
+	Let's Play Model I
+	Has cassette!
+	</DIV>
+
+	<DIV ID="DONKEYKONGtext" Class="maingridcol2" Style="display:none;">
+	</DIV>
+
+	<DIV ID="TIMEBANDITtext" Class="maingridcol2" Style="display:none;">
+	</DIV>
+
+	<DIV ID="FLYINGSAUCERStext" Class="maingridcol2" Style="display:none;">
+	</DIV>
+
+	<DIV ID="AIRRAIDtext" Class="maingridcol2" Style="display:none;">
+	</DIV>
+
+	<DIV ID="EMPIREtext" Class="maingridcol2" Style="display:none;">
+	</DIV>
+
+</DIV>
+	
+<canvas id="maincanvas" style="position:absolute;left:200px;top:40px;margin:0px;width:25px;height:25px;padding:10px 20px 10px 20px;background:#000000;display:none;"></canvas>
+
+<div style="display:none;">
+	<div id="scrn" style="display:none;"><canvas id="maincanvas" width="512" height="384" style="background:black"></canvas></div>
+	<div id="graph"><canvas width="512" height="384" style="background:black"></canvas></div>
+	<input type="button"id="btn" value="Run">
+	<input type="button" value="Reset">
+</div>
+
+<DIV ID="ButtonClose" OnClick="StopGame();" Style="position:absolute;top:10px;right:30px;border:2px solid white;font-size:20px;width:50px;height:50px;text-align:center;margin:0px 0px 0px 0px;padding:0px 0px 0px 0px;display:none;"><DIV Style="margin:10px 0px 0px 0px;"><B>X</B></DIV></DIV>
+<DIV ID="ButtonPause" OnClick="ToggleGame();" Style="position:absolute;top:70px;right:30px;border:2px solid white;font-size:20px;width:50px;height:50px;text-align:center;margin:0px 0px 0px 0px;padding:0px 0px 0px 0px;display:none;"><DIV Style="margin:10px 0px 0px 0px;" ID="ToggleText"><B>ll</B></DIV></DIV>
+
+<DIV ID="PARAMtext" Style="position:absolute;left:0px;top:0px;width:100vw;height:100vh;background:#000000CC;display:none;">
+	<DIV Style="height:100%;position: relative;">
+		<DIV Style="margin:px;position:absolute;top:50%;left:50%;-ms-transform: translate(-50%, -50%);transform: translate(-50%, -50%);">
+			<DIV Style="text-align:center;">
+				<DIV Style="color:#AAAAFF;font-size:30px;"><B>THE GAMES I USED TO PLAY</B></DIV>
+				<BR>
+				<DIV Style="font-size:20px;">
+					<B>DO SOMETHING</B><BR>
+					<B>DO ANYTHING</B><BR>
+					<BR>
+					<SPAN Style="color:#AAAAAA;">
+						<B>THIS INTERACTION<BR>ALLOWS ME TO PLAY SOUND</B><BR>
+						<B>THANK YOU</B><BR>
+					</SPAN>
+				</DIV>
+			</DIV>
+		</DIV>
+	</DIV>
+</DIV>
+
+</body>
+</html>
