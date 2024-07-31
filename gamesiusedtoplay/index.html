@@ -84,22 +84,22 @@ Note: Links might want to main page (just video)
 left:37 up:38 right:39 down:40
 */
 
-var configCacheBreaker = Math.floor(Math.random() * 10000);
-var configDebug = 1;  // Debug mode adds tedious Load to menus (slow load of .CMD/.DMK game source files that we make snapshots of)
+var configCacheBreaker = 30;   // Math.floor(Math.random() * 10000);
+var configDebug = 0;  // Debug mode adds tedious Load to menus (slow load of .CMD/.DMK game source files that we make snapshots of)
 
 var gamesList = [
 	"OUTHOUSE", "DEFENSECOMMAND", "CRAZYPAINTER", "SCARFMAN"
 	, "PENETRATOR", "DANCINGDEMON", "EMPIRE"
 	, "LIBERATOR", "DONKEYKONG"
 	, "CYBORG", "ASSAULT", "GHOSTS"
-	, "WEERD", "TIMEBANDIT", "AIRRAID", "FLYINGSAUCERS"
+	// , "WEERD", "TIMEBANDIT", "AIRRAID", "FLYINGSAUCERS"
 ];
 
 var urlSearchParams = new URLSearchParams(window.location.search);
 var holdCacheBreaker = 0;
 if ((urlSearchParams.get("cachebreaker") != null) && (urlSearchParams.get("cachebreaker").trim() != "")) { holdCacheBreaker = parseInt(urlSearchParams.get("cachebreaker").trim()); }
-if (holdCacheBreaker == 0)
-/// if (holdCacheBreaker != configCacheBreaker)
+// if (holdCacheBreaker == 0)
+if (holdCacheBreaker != configCacheBreaker)
 {
 	urlSearchParams.set("cachebreaker", "" + configCacheBreaker);
 	location.replace("index.html?" + urlSearchParams.toString());
