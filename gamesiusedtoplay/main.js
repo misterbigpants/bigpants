@@ -7,6 +7,7 @@ var gamesList = [
 	, "SCARFMAN"
 	, "PENETRATOR", "DANCINGDEMON", "EMPIRE"
 	, "LIBERATOR", "DONKEYKONG"
+	, "AIRRAID", "FLYINGSAUCERS"
 	, "CYBORG", "ASSAULT"
 	, "GHOSTS"
 	/*
@@ -15,23 +16,23 @@ var gamesList = [
 ];
 
 var gamesInfo = {};
-gamesInfo.OUTHOUSE = {"index":0, "key":"OUTHOUSE", "caption": "OUTHOUSE", "backgroundImage": "game-OUTHOUSEImage1.jpg", "videoid": "pAXy24U_Gts?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [8 * 60 + 5, 9 * 60 + 30, 11 * 60 + 0]};
-gamesInfo.DEFENSECOMMAND = {"index":1, "key":"DEFENSECOMMAND", "caption": "DEFENSE COMMAND", "backgroundImage": "game-DEFENSECOMMANDImage1.png", "videoid": "_ZVYTrDoOPI?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [3 * 60 + 53, 7 * 60 + 55, 9 * 60 + 58]};
-gamesInfo.CRAZYPAINTER = {"index":2, "key":"CRAZYPAINTER", "caption": "CRAZY PAINTER", "backgroundImage": "game-CRAZYPAINTERImage1.jpg", "videoid": "CdiHbnn97Bg?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [2 * 60 + 0, 5 * 60 + 30, 19 * 60 + 0]};
-gamesInfo.SCARFMAN = {"index":3, "key":"SCARFMAN", "caption": "SCARFMAN", "backgroundImage": "game-SCARFMANImage1.png", "videoid": "3edOlW42SLQ?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [5 * 60 + 35, 7 * 60 + 33]};
-gamesInfo.PENETRATOR = {"index":4, "key":"PENETRATOR", "caption": "PENETRATOR", "backgroundImage": "game-PENETRATORImage2.jpg", "videoid": "XbXGahP5fsA?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [2 * 60 + 21, 6 * 60 + 39, 7 * 60 + 24]};
-gamesInfo.DANCINGDEMON = {"index":5, "key":"DANCINGDEMON", "caption": "DANCING DEMON", "backgroundImage": "game-DANCINGDEMONImage1.jpg", "videoid": "5XLoNJ4l--E?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [0 * 60 + 14, 7 * 60 + 35, 9 * 60 + 5]};
-gamesInfo.EMPIRE = {"index":6, "key":"EMPIRE", "caption": "EMPIRE", "backgroundImage": "game-EMPIREImage1.png", "videoid": "k2gDhfE5wWw?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [5 * 60 + 16, 16 * 60 + 30, 29 * 60 + 13]};
-gamesInfo.LIBERATOR = {"index":7, "key":"LIBERATOR", "caption": "LIBERATOR", "backgroundImage": "game-LIBERATORImage1.jpg", "videoid": "CVYXgexc7Mk?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [2 * 60 + 21, 3 * 60 + 17, 4 * 60 + 55]};
-gamesInfo.DONKEYKONG = {"index":8, "key":"DONKEYKONG", "caption": "DONKEY KONG", "backgroundImage": "game-DONKEYKONGImage1.gif", "videoid": "CVYXgexc7Mk", "videomoments": [9 * 60 + 0, 13 * 60 + 20, 14 * 60 + 30]};
-gamesInfo.CYBORG = {"index":9, "key":"CYBORG", "caption": "CYBORG", "backgroundImage": "game-CYBORGImage1.jpg", "videoid": "Bh0eE3Tf2_Y", "videomoments": []};
-gamesInfo.ASSAULT = {"index":10, "key":"ASSAULT", "caption": "ASSAULT", "backgroundImage": "game-ASSAULTImage1.jpg", "videoid": "Bh0eE3Tf2_Y", "videomoments": []};
-gamesInfo.GHOSTS = {"index":11, "key":"GHOSTS", "caption": "13 GHOSTS", "backgroundImage": "game-GHOSTSImage1.jpg", "videoid": "ZQDqYZ2pgOs", "videomoments": []};
+gamesInfo.OUTHOUSE = { "index":0, "key":"OUTHOUSE", "caption": "OUTHOUSE", "backgroundImage": "game-OUTHOUSEImage1.jpg", "videoid": "pAXy24U_Gts?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [8 * 60 + 5, 9 * 60 + 30, 11 * 60 + 0]};
+gamesInfo.DEFENSECOMMAND = { "index":1, "key":"DEFENSECOMMAND", "caption": "DEFENSE COMMAND", "backgroundImage": "game-DEFENSECOMMANDImage1.png", "videoid": "_ZVYTrDoOPI?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [3 * 60 + 53, 7 * 60 + 55, 9 * 60 + 58]};
+gamesInfo.CRAZYPAINTER = { "index":2, "key":"CRAZYPAINTER", "caption": "CRAZY PAINTER", "backgroundImage": "game-CRAZYPAINTERImage1.jpg", "videoid": "CdiHbnn97Bg?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [2 * 60 + 0, 5 * 60 + 30, 19 * 60 + 0]};
+gamesInfo.SCARFMAN = { "index":3, "key":"SCARFMAN", "caption": "SCARFMAN", "backgroundImage": "game-SCARFMANImage1.png", "videoid": "3edOlW42SLQ?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [5 * 60 + 35, 7 * 60 + 33]};
+gamesInfo.PENETRATOR = { "index":4, "key":"PENETRATOR", "caption": "PENETRATOR", "backgroundImage": "game-PENETRATORImage2.jpg", "videoid": "XbXGahP5fsA?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [2 * 60 + 21, 6 * 60 + 39, 7 * 60 + 24]};
+gamesInfo.DANCINGDEMON = { "index":5, "key":"DANCINGDEMON", "caption": "DANCING DEMON", "backgroundImage": "game-DANCINGDEMONImage1.jpg", "videoid": "5XLoNJ4l--E?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [0 * 60 + 14, 7 * 60 + 35, 9 * 60 + 5]};
+gamesInfo.EMPIRE = { "index":6, "key":"EMPIRE", "caption": "EMPIRE", "backgroundImage": "game-EMPIREImage1.png", "videoid": "k2gDhfE5wWw?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [5 * 60 + 16, 16 * 60 + 30, 29 * 60 + 13]};
+gamesInfo.LIBERATOR = { "index":7, "key":"LIBERATOR", "caption": "LIBERATOR", "backgroundImage": "game-LIBERATORImage1.jpg", "videoid": "CVYXgexc7Mk?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [2 * 60 + 21, 3 * 60 + 17, 4 * 60 + 55]};
+gamesInfo.DONKEYKONG = { "index":8, "key":"DONKEYKONG", "caption": "DONKEY KONG", "backgroundImage": "game-DONKEYKONGImage1.gif", "videoid": "CVYXgexc7Mk", "videomoments": [9 * 60 + 0, 13 * 60 + 20, 14 * 60 + 30]};
+gamesInfo.AIRRAID = { "index": 9, "key": "AIRRAID", "caption": "AIR RAID", "backgroundImage": "game-AIRRAIDImage1.jpg", "videoid": "ZQDqYZ2pgOs", "MktIMzw9qtI?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1&start=388": [] };
+gamesInfo.FLYINGSAUCERS = { "index": 10, "key": "FLYINGSAUCERS", "caption": "FLYING SAUCERS", "backgroundImage": "game-FLYINGSAUCERSImage1.png", "videoid": "MktIMzw9qtI?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [55, 2 * 60 + 18] };
+gamesInfo.CYBORG = { "index": 11, "key": "CYBORG", "caption": "CYBORG", "backgroundImage": "game-CYBORGImage1.jpg", "videoid": "Bh0eE3Tf2_Y", "videomoments": [] };
+gamesInfo.ASSAULT = { "index": 12, "key": "ASSAULT", "caption": "ASSAULT", "backgroundImage": "game-ASSAULTImage1.jpg", "videoid": "Bh0eE3Tf2_Y", "videomoments": [] };
+gamesInfo.GHOSTS = { "index": 13, "key": "GHOSTS", "caption": "13 GHOSTS", "backgroundImage": "game-GHOSTSImage1.jpg", "videoid": "ZQDqYZ2pgOs", "videomoments": [] };
 
-gamesInfo.WEERD = {"index":12, "key":"WEERD", "caption": "WEERD", "backgroundImage": "game-WEERDImage1.jpg", "videoid": "ZQDqYZ2pgOs", "videomoments": []};
-gamesInfo.TIMEBANDIT = {"index":13, "key":"TIMEBANDIT", "caption": "TIME BANDIT", "backgroundImage": "game-TIMEBANDITImage1.jpg", "videoid": "ZQDqYZ2pgOs", "videomoments": []};
-gamesInfo.AIRRAID = {"index":14, "key":"AIRRAID", "caption": "AIR RAID", "backgroundImage": "game-AIRRAIDImage1.jpg", "videoid": "ZQDqYZ2pgOs", "videomoments": []};
-gamesInfo.FLYINGSAUCERS = {"index":15, "key":"FLYINGSAUCERS", "caption": "FLYING SAUCERS", "backgroundImage": "game-FLYINGSAUCERSImage1.jpg", "videoid": "ZQDqYZ2pgOs", "videomoments": []};
+gamesInfo.WEERD = {"index":14, "key":"WEERD", "caption": "WEERD", "backgroundImage": "game-WEERDImage1.jpg", "videoid": "ZQDqYZ2pgOs", "videomoments": []};
+gamesInfo.TIMEBANDIT = {"index":15, "key":"TIMEBANDIT", "caption": "TIME BANDIT", "backgroundImage": "game-TIMEBANDITImage1.jpg", "videoid": "ZQDqYZ2pgOs", "videomoments": []};
 
 /*
 
@@ -335,7 +336,9 @@ var loadRememberGameListIndex = -1;
 function LoadFull(pGameName, pPageIndex)
 {
 	gameName = pGameName;
-	window.history.replaceState(null, "", "index.html?gameName=" + gameName + "&gameLevelIndex=" + pPageIndex);
+	let url = "index.html?gameName=" + gameName;
+	if (pPageIndex > 0) { url += "&gameLevelIndex=" + pPageIndex; }
+	window.history.replaceState(null, "", url);
 	window.scrollTo(0, 0);
 	document.body.style.backgroundImage = "url('" + gamesInfo[gameName].backgroundImage + "')";	
 }
