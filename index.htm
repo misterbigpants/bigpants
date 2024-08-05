@@ -52,7 +52,10 @@
 		}
 	</style>
 	<SCRIPT Language="Javascript">
-		window.location.replace("gamesiusedtoplay");
+		let url = "gamesiusedtoplay" + location.search;
+		if (url.indexOf("?") == -1) { url += "?"; } else { url += "&"; }
+		url += "cachebreaker=" + Math.floor(Math.random() * 10000);
+		window.location.replace(url);
 	</SCRIPT>
 
 	<BODY>
