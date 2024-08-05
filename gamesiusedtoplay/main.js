@@ -1,5 +1,22 @@
 "use strict";
 
+var configCacheBreaker = 33;   // Math.floor(Math.random() * 10000);
+var configDebug = 0;  // Debug mode adds tedious Load to menus (slow load of .CMD/.DMK game source files that we make snapshots of)
+var urlSearchParams = new URLSearchParams(window.location.search);
+
+var holdCacheBreaker = 0;
+if ((urlSearchParams.get("cachebreaker") != null) && (urlSearchParams.get("cachebreaker").trim() != "")) { holdCacheBreaker = parseInt(urlSearchParams.get("cachebreaker").trim()); }
+
+// if (holdCacheBreaker == 0)
+if (holdCacheBreaker != configCacheBreaker) {
+	urlSearchParams.set("cachebreaker", "" + configCacheBreaker);
+	location.replace("index.html?" + urlSearchParams.toString());
+	// .replace is asynchronous so code keeps going and gets here and renders the whole page before switching. sigh.
+	document.write("<!-- ");   // don't bother with the rest of this document
+}
+else {
+	window.history.replaceState(null, "", "index.html");   // don't want people copying cachebreaker parameter in URL, ironcially that will cause them to get a cached page
+}
 
 var gamesList = [
 	"OUTHOUSE", "DEFENSECOMMAND"
@@ -25,7 +42,7 @@ gamesInfo.DANCINGDEMON = { "index":5, "key":"DANCINGDEMON", "caption": "DANCING 
 gamesInfo.EMPIRE = { "index":6, "key":"EMPIRE", "caption": "EMPIRE", "backgroundImage": "game-EMPIREImage1.png", "videoid": "k2gDhfE5wWw?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [5 * 60 + 16, 16 * 60 + 30, 29 * 60 + 13]};
 gamesInfo.LIBERATOR = { "index":7, "key":"LIBERATOR", "caption": "LIBERATOR", "backgroundImage": "game-LIBERATORImage1.jpg", "videoid": "CVYXgexc7Mk?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [2 * 60 + 21, 3 * 60 + 17, 4 * 60 + 55]};
 gamesInfo.DONKEYKONG = { "index":8, "key":"DONKEYKONG", "caption": "DONKEY KONG", "backgroundImage": "game-DONKEYKONGImage1.gif", "videoid": "CVYXgexc7Mk", "videomoments": [9 * 60 + 0, 13 * 60 + 20, 14 * 60 + 30]};
-gamesInfo.AIRRAID = { "index": 9, "key": "AIRRAID", "caption": "AIR RAID", "backgroundImage": "game-AIRRAIDImage1.jpg", "videoid": "ZQDqYZ2pgOs", "MktIMzw9qtI?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1&start=388": [] };
+gamesInfo.AIRRAID = { "index": 9, "key": "AIRRAID", "caption": "AIR RAID", "backgroundImage": "game-AIRRAIDImage1.jpg", "MktIMzw9qtI?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1&star=388", "videomoments": [] };
 gamesInfo.FLYINGSAUCERS = { "index": 10, "key": "FLYINGSAUCERS", "caption": "FLYING SAUCERS", "backgroundImage": "game-FLYINGSAUCERSImage1.png", "videoid": "MktIMzw9qtI?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [55, 2 * 60 + 18] };
 gamesInfo.CYBORG = { "index": 11, "key": "CYBORG", "caption": "CYBORG", "backgroundImage": "game-CYBORGImage1.jpg", "videoid": "Bh0eE3Tf2_Y", "videomoments": [] };
 gamesInfo.ASSAULT = { "index": 12, "key": "ASSAULT", "caption": "ASSAULT", "backgroundImage": "game-ASSAULTImage1.jpg", "videoid": "Bh0eE3Tf2_Y", "videomoments": [] };
@@ -35,13 +52,6 @@ gamesInfo.WEERD = {"index":14, "key":"WEERD", "caption": "WEERD", "backgroundIma
 gamesInfo.TIMEBANDIT = {"index":15, "key":"TIMEBANDIT", "caption": "TIME BANDIT", "backgroundImage": "game-TIMEBANDITImage1.jpg", "videoid": "ZQDqYZ2pgOs", "videomoments": []};
 
 /*
-
-launchgame from paste (full change)
-launchgame from params (full change)
-launchgame from sidebar (full change, close sidebar)
-launchgame from link (maybe full change)
-
-
 // hard-learned. relocate comment
 // event is a global object that's constantly getting changed.
 // this is also like this. big difference between addeventlistener.click and onclick=
@@ -51,11 +61,9 @@ collection[i].addEventListener("click", DropDownToggle);
 // if click event already hooked, will not add TWO (thank god).
 // global event object is implicitly passed as first argument (by value hopefully?)
 
-
-
 Going Live: 4 things
 1. gamesList - don't show all games
-2. configCacheBreaker: last count 16
+2. configCacheBreaker
 3. configDebug = 0
 4. change if (holdCacheBreaker != configCacheBreaker)
 
@@ -72,7 +80,7 @@ Ways Game can be Loaded
 4. Link NOT on left that tries to load game (challenges) 
 Note: Links might want to main page (just video)
 
-left:37 up:38 right:39 down:40
+keys: left:37 up:38 right:39 down:40
 */
 
 var videoState = 0;
