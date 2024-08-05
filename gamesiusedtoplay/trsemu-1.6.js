@@ -12685,27 +12685,25 @@ function TRS80Draw_Canvas(z)
 		
 	var aspectRatio = 384.0 / 512.0; //   574.0 / 775.0;
 
-	var indent = 250;
-	if (testw < 1000) { indent = 10; }
-
-	var w = parseInt(testw - indent - 50);   // padding left & right of 20 pixels
+	var w = parseInt(testw - 20);   // padding left & right of 20 pixels
 	var h = parseInt(w * aspectRatio);
 
-	if (h > parseInt(testh - 40))
+	if (h > parseInt(testh - 20))
 	{
-		h = parseInt(testh - 40);
+		h = parseInt(testh - 20);
 		w = parseInt(h / aspectRatio);
 	}
 	
 	document.getElementById("maincanvas").width = w;
 	document.getElementById("maincanvas").height = h;
-	document.getElementById("maincanvas").style.left = (indent + parseInt(((testw - indent - 50) - w) * 0.5)) + "px";
+	document.getElementById("maincanvas").style.left = parseInt((testw - w) * 0.5) + "px";
 	document.getElementById("maincanvas").style.top = "10px";   // show a little gray
 	document.getElementById("maincanvas").style.width = w + "px";
 	document.getElementById("maincanvas").style.height = h + "px";
 		
 	var holdMain = document.getElementById("maincanvas").getContext("2d");
-	holdMain.drawImage(z.canvas, 0, 0, w, h);	
+	let border = 20;
+	holdMain.drawImage(z.canvas, border, parseInt(border * aspectRatio), w - border * 2, h - parseInt(border * 2 * aspectRatio));	
 }
 
 function TRS80Draw_WebGL(z)
