@@ -140,7 +140,6 @@ function VideoOpen(pGameName, pStartSeconds = 0)
 	document.getElementById(gameName + "text").style.display = "none";   // Close open pages, which removes vertical scrolling (VideoClose will bring them back)
 	GameClose();   // Close Game
 
-	alert("HEY: " + pGameName + ":" + gamesInfo[pGameName].videoid);
 	document.getElementById("mainvideo").style.display = "";
 	let src = "https://www.youtube-nocookie.com/embed/" + gamesInfo[pGameName].videoid
 	if (src.indexOf("?") == -1) { src += "?"; } else { src += "&"; }

@@ -10,7 +10,6 @@ if ((urlSearchParams.get("cachebreaker") != null) && (urlSearchParams.get("cache
 // if (holdCacheBreaker == 0)
 if (holdCacheBreaker != configCacheBreaker)
 {
-	alert("breaking cache!");
 	urlSearchParams.set("cachebreaker", "" + configCacheBreaker);
 	location.replace("index.html?" + urlSearchParams.toString());
 	// .replace is asynchronous so code keeps going and gets here and renders the whole page before switching. sigh.
