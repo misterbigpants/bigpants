@@ -1,6 +1,6 @@
 "use strict";
 
-var configCacheBreaker = 35; //  Math.floor(Math.random() * 10000);
+var configCacheBreaker = 36; //  Math.floor(Math.random() * 10000);
 var configDebug = 0;  // Debug mode adds tedious Load to menus (slow load of .CMD/.DMK game source files that we make snapshots of)
 var urlSearchParams = new URLSearchParams(window.location.search);
 
