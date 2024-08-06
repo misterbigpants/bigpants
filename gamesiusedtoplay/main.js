@@ -1,6 +1,6 @@
 "use strict";
 
-var configCacheBreaker = 33;   // Math.floor(Math.random() * 10000);
+var configCacheBreaker = 35; //  Math.floor(Math.random() * 10000);
 var configDebug = 0;  // Debug mode adds tedious Load to menus (slow load of .CMD/.DMK game source files that we make snapshots of)
 var urlSearchParams = new URLSearchParams(window.location.search);
 
@@ -8,7 +8,8 @@ var holdCacheBreaker = 0;
 if ((urlSearchParams.get("cachebreaker") != null) && (urlSearchParams.get("cachebreaker").trim() != "")) { holdCacheBreaker = parseInt(urlSearchParams.get("cachebreaker").trim()); }
 
 // if (holdCacheBreaker == 0)
-if (holdCacheBreaker != configCacheBreaker) {
+if (holdCacheBreaker != configCacheBreaker)
+{
 	urlSearchParams.set("cachebreaker", "" + configCacheBreaker);
 	location.replace("index.html?" + urlSearchParams.toString());
 	// .replace is asynchronous so code keeps going and gets here and renders the whole page before switching. sigh.
@@ -390,7 +391,7 @@ function LoadGamesList(pGameName, pGamesListIndex, pFull = true)
 	SideNavClose();
 }
 
-function LoadGamesListSave(pGameName, pGamesListSaveIndex)
+function LoadGamesListSave(pGameName, pGamesListSaveIndex, pFull = true)
 {
 	// GameClose();
 	VideoClose();
@@ -399,7 +400,6 @@ function LoadGamesListSave(pGameName, pGamesListSaveIndex)
 	loadRememberGameType = 1;
 	loadRememberGameListIndex = pGamesListSaveIndex;
 	gameEverything = gamesListSave[pGameName][pGamesListSaveIndex];
-	SideNavClose();	
 	resetgame1();
 	if (pFull) { LoadFull(pGameName, 0); }   // no gameLevelIndex because we can't share LOCAL saves
 
@@ -512,6 +512,7 @@ function LoadPage(pGameName, pPageIndex = 0, pFull = false)
 	}
 	else
 	{
+		// This should NEVER happen. Means we're providing links to LOCAL SAVED GAMES.
 		LoadGamesListSave(pGameName, pPageIndex - 2 - gamesList[pGameName].length, pFull);
 	}		
 }
@@ -707,27 +708,27 @@ function BodyOnLoad()
 function MessageDisplay(pInnerHTML, pColor)
 {
 	var testw = window.innerWidth
-	|| document.documentElement.clientWidth
-	|| document.body.clientWidth;
+		|| document.documentElement.clientWidth
+		|| document.body.clientWidth;
 	testw = parseFloat(testw);
 
 	var testh = window.innerHeight
-	|| document.documentElement.clientHeight
-	|| document.body.clientHeight;	
+		|| document.documentElement.clientHeight
+		|| document.body.clientHeight;
 	testh = parseFloat(testh);
 
 	let message = document.getElementById("message");
 	message.style.left = "0px";
 	message.style.top = "0px";
 	message.style.width = testw + "px";
-	message.style.height = testh + "px";		
+	message.style.height = testh + "px";
 	
-	message.style.backgroundColor = pColor + "50";
+	message.style.backgroundColor = pColor + "50";   // opacity
 	message.style.color = pColor;
 	message.style.fontSize = "150px";
 	message.style.opacity = 1;
 
-	message.innerHTML = pInnerHTML;  // "<B>COPY</B>";
+	message.innerHTML = "<DIV Style='padding-top:10%'>" + pInnerHTML + "</DIV>";
 	
 	message.style.display = "";
 	MessageTimer();
