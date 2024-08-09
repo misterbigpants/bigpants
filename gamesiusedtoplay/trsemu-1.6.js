@@ -11999,6 +11999,7 @@ function KeyEventKeyboard()
 
 	function keypress(z, event)
 	{
+		if (appState < 2) { return; }
 		event.preventDefault();	// works for Opera
 		event.stopPropagation();
 		return false;
@@ -12006,6 +12007,8 @@ function KeyEventKeyboard()
 
 	function keydown(z, e)
 	{		
+		if (appState < 2) { return; }
+
 		// CtrlKey (by itself)
 		if (e.keyCode == 17)
 		{
@@ -12014,8 +12017,13 @@ function KeyEventKeyboard()
 		}
 
 		if (e.keyCode != 16) {
-			if ((!(keycap[e.keyCode])) || (z.keyheld[e.keyCode] > 0)) { return; }   // do not allow key to be repeated until keyup
-			z.keyheld[e.keyCode] = 1;
+			// do not allow key to be repeated until keyup
+			if ((!(keycap[e.keyCode])) || (z.keyheld[e.keyCode] > 0)) {
+				if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }
+				return false;
+			} else {
+				z.keyheld[e.keyCode] = 1;
+			}
 		}
 
 		if (e.ctrlKey)
@@ -12034,7 +12042,7 @@ function KeyEventKeyboard()
 			else if (e.keyCode == 80)
 			{
 				ButtonPauseOnClick();
-				if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }		
+				if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }
 				return false;
 			}
 			
@@ -12042,7 +12050,7 @@ function KeyEventKeyboard()
 			else if (e.keyCode == 83)
 			{
 				ButtonSaveOnClick();
-				z.keyheld[e.keyCode] = 1;   // Ctrl S can NOW be pressed again, don't let that happen
+				z.keyheld[e.keyCode] = 1;   // Prevent S from repeating
 				if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }		
 				return false;
 			}
@@ -12051,7 +12059,7 @@ function KeyEventKeyboard()
 			else if (e.keyCode == 76)
 			{				
 				ButtonLoadOnClick();
-				z.keyheld[e.keyCode] = 1;   // Ctrl S can NOW be pressed again, don't let that happen
+				z.keyheld[e.keyCode] = 1;   // Prevent L from repeating
 				if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }		
 				return false;
 			}
@@ -12083,8 +12091,7 @@ function KeyEventKeyboard()
 				newKeyCode = gamesList[gameName + "KEYS"][newKeyCode];
 				if (newKeyCode == -1)
 				{
-					e.preventDefault();
-					e.stopPropagation();
+					if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }
 					return false;						
 				}							
 			}
@@ -12130,7 +12137,9 @@ function KeyEventKeyboard()
 	}
 	
 	function keyup(z, e)
-	{				
+	{
+		if (appState < 2) { return; }
+		
 		// CtrlKey (by itself)
 		if (e.keyCode == 17)
 		{
@@ -12139,8 +12148,13 @@ function KeyEventKeyboard()
 		}
 
 		if (e.keyCode != 16) {
-			if ((!(keycap[e.keyCode])) || (z.keyheld[e.keyCode] == 0)) { return; }   // do not allow key to be repeated until keyup
-			z.keyheld[e.keyCode] = 0;
+			// if it's already up, ignore
+			if ((!(keycap[e.keyCode])) || (z.keyheld[e.keyCode] == 0)) {
+				if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }
+				return false;
+			} else {
+				z.keyheld[e.keyCode] = 0;
+			}
 		}
 		
 		// remap

@@ -7,7 +7,7 @@ Going Live: 4 things
 4. change if (holdCacheBreaker != configCacheBreaker)
 */
 
-var configCacheBreaker = 37; //  Math.floor(Math.random() * 10000);
+var configCacheBreaker = 38; //  Math.floor(Math.random() * 10000);
 var configDebug = 0;  // Debug mode adds tedious Load to menus (slow load of .CMD/.DMK game source files that we make snapshots of)
 var urlSearchParams = new URLSearchParams(window.location.search);
 
@@ -149,8 +149,8 @@ function FormatTime(pSeconds)
 
 function VideoOpen(pGameName, pStartSeconds = 0)
 {
-	document.getElementById(gameName + "text").style.display = "none";   // Close open pages, which removes vertical scrolling (VideoClose will bring them back)
 	GameClose();   // Close Game
+	document.getElementById(homeGameName + "text").style.display = "none";  // Close open pages, which removes vertical scrolling (VideoClose will bring them back)
 
 	document.getElementById("mainvideo").style.display = "";
 	let src = "https://www.youtube-nocookie.com/embed/" + gamesInfo[pGameName].videoid
@@ -199,6 +199,7 @@ function DropDownToggle(pEvent = null, pThis = "", pType = 0, pDisplay = "")
 	let holdStyle = pThis.nextElementSibling.style;
 	if (pType == 0)
 	{
+		// Toggle
 		if (holdStyle.display == "none")
 		{
 			// Open
@@ -214,15 +215,21 @@ function DropDownToggle(pEvent = null, pThis = "", pType = 0, pDisplay = "")
 	}
 	else if (pType == 1)
 	{
-		// Open
-		pThis.classList.add("jimsectiondown");
-		holdStyle.display = pDisplay;
+		// Force Open
+		if (holdStyle.display == "none")
+		{
+			pThis.classList.add("jimsectiondown");
+			holdStyle.display = pDisplay;
+		}
 	}
 	else if (pType == 2)
 	{
-		// closed
-		pThis.classList.remove("jimsectiondown");
-		holdStyle.display = "none";
+		// Force Close
+		if (holdStyle.display != "none")
+		{
+			pThis.classList.remove("jimsectiondown");
+			holdStyle.display = "none";
+		}
 	}
 		
 	if (pEvent) { pEvent.preventDefault(); pEvent.stopPropagation(); return false; }
@@ -342,12 +349,14 @@ function SideNavInitialize() {
 
 /* --------------------------------------------------------------------------------------------- */
 /* --------------------------------------------------------------------------------------------- */
+var homeGameName = "MAIN";
+
 var paramsTempGameName = urlSearchParams.get("gameName");
 var paramsTempGameLevelIndex = 0;   // default to home page
 if (urlSearchParams.get("gameLevelIndex") != null) { paramsTempGameLevelIndex = parseInt(urlSearchParams.get("gameLevelIndex")); }
 
 var gamesListSave = [];
-var gameName = "MAIN";
+var gameName = "";
 var gameEverything = null;
 
 var appState = 0;  // 0-No Emulator   1-Emulator Running
@@ -358,19 +367,23 @@ var loadRememberGameListIndex = -1;
 
 function LoadFull(pGameName, pPageIndex)
 {
-	gameName = pGameName;
-	let url = "index.html?gameName=" + gameName;
+	homeGameName = pGameName;
+	let url = "index.html?gameName=" + homeGameName;
 	if (pPageIndex > 0) { url += "&gameLevelIndex=" + pPageIndex; }
 	window.history.replaceState(null, "", url);
 	window.scrollTo(0, 0);
-	document.body.style.backgroundImage = "url('" + gamesInfo[gameName].backgroundImage + "')";	
+	document.body.style.backgroundImage = "url('" + gamesInfo[homeGameName].backgroundImage + "')";
+
+	// Sync SideNav with Game
+	LoadScript1(null, homeGameName);
+	DropDownToggle(null, homeGameName, 1);
 }
 
 function LoadHome(pGameName, pFull = true)
 {
 	GameClose();
 	VideoClose();
-	document.getElementById(gameName + "text").style.display = "none";
+	document.getElementById(homeGameName + "text").style.display = "none";
 
 	document.getElementById(pGameName + "text").style.display = "";
 	if (pFull) { LoadFull(pGameName, 0); }
@@ -382,7 +395,7 @@ function LoadVideo(pGameName, pFull = true, pSeconds = 0)
 {
 	GameClose();
 	// VideoClose();
-	document.getElementById(gameName + "text").style.display = "none";   // VideoOpen also does this
+	document.getElementById(homeGameName + "text").style.display = "none";
 
 	VideoOpen(pGameName, pSeconds);
 	if (pFull) { LoadFull(pGameName, 1); }
@@ -392,15 +405,16 @@ function LoadVideo(pGameName, pFull = true, pSeconds = 0)
 
 function LoadGamesList(pGameName, pGamesListIndex, pFull = true)
 {
-	GameClose();
+	// GameClose();
 	VideoClose();
-	document.getElementById(gameName + "text").style.display = "none";   // resetgame3 also does this
+	document.getElementById(homeGameName + "text").style.display = "none";
 
+	gameName = pGameName;
 	loadRememberGameType = 0;
 	loadRememberGameListIndex = pGamesListIndex;
-	gameEverything = gamesList[pGameName][pGamesListIndex];   // Horrible Dependency: Script MUST be loaded by LoadScript1
-	resetgame1();
-	if (pFull) { LoadFull(pGameName, pGamesListIndex + 2); }
+	gameEverything = gamesList[gameName][pGamesListIndex];   // Horrible Dependency: Script MUST be loaded by LoadScript1
+	resetgame1();   // does VideoClose and homeGameName.display = "none"
+	if (pFull) { LoadFull(gameName, pGamesListIndex + 2); }
 
 	SideNavClose();
 }
@@ -409,13 +423,14 @@ function LoadGamesListSave(pGameName, pGamesListSaveIndex, pFull = true)
 {
 	// GameClose();
 	VideoClose();
-	document.getElementById(gameName + "text").style.display = "none";   // resetgame3 also does this
+	document.getElementById(homeGameName + "text").style.display = "none";
 
+	gameName = pGameName;
 	loadRememberGameType = 1;
 	loadRememberGameListIndex = pGamesListSaveIndex;
-	gameEverything = gamesListSave[pGameName][pGamesListSaveIndex];
-	resetgame1();
-	if (pFull) { LoadFull(pGameName, 0); }   // no gameLevelIndex because we can't share LOCAL saves
+	gameEverything = gamesListSave[gameName][pGamesListSaveIndex];
+	resetgame1();   // does VideoClose and homeGameName.display = "none"
+	if (pFull) { LoadFull(gameName, 0); }   // no gameLevelIndex because we can't share LOCAL saves
 
 	SideNavClose();
 }
@@ -429,12 +444,14 @@ function GameClose()
 		document.getElementById("Buttons").style.display = "none";
 		appState = 1;
 		gameState = 0;
+		gameName = "";
 	}
 }
 
 var soundInit = 0;
 function resetgame1()
 {
+	console.assert(gameName != "", "ResetGame1() Error: gameName = \"\"");
 	// enable sound on mobile
 	if (soundInit == 0)
 	{
@@ -453,7 +470,9 @@ function resetgame1()
 
 function resetgame2()
 {
-	// install the TRSEmu emulator (sets up sound, so mobile better allow it)	
+	console.assert(gameName != "", "ResetGame2() Error: gameName = \"\"");
+
+	// install the TRSEmu emulator (sets up sound, so mobile better allow it)
 	// cannot initilaize trsemu-1.5.js in SCRIPT or Body.OnLoad
 	// 1. user must interact with browser BEFORE trsemu-1.5.js can initilaize audio
 	// 2. trsemu-1.5.js also needs body fully loaded
@@ -472,10 +491,13 @@ function resetgame2()
 
 function resetgame3()
 {
+	console.assert(gameName != "", "ResetGame3() Error: gameName = \"\"");
+
+	VideoClose();
+	document.getElementById(homeGameName + "text").style.display = "none";   // can't show Home page because that causes vertical scroll
+
 	if (appState < 1) { appState = 1; }   // trsEMU has successfully been initialized
 	trsEmu.screen('scrn').button('btn').perf('graph').focus();   // not currently able to remove this
-
-	document.getElementById(gameName + "text").style.display = "none";   // can't show Home page because that causes vertical scroll
 
 	// a game is active and paused, toggle back to play
 	if (gameState == 1) { ButtonPauseOnClick(); }
@@ -487,7 +509,7 @@ function resetgame3()
 	// fresh load of actual command file (once snapshots are created, this is no longer necessary BUT I hate to remove functionality)
 	if (gameEverything.PC == -1)
 	{
-		trsEmu.run(gamesList[gameEverything.gameName + "LOAD"]);
+		trsEmu.run(gamesList[gameName + "LOAD"]);
 		// if we were to try a trsEmu.set right here it would NOT work, would have to fire with a timer. window.setTimeout("resetgame3();", 1000);
 		appState = 2;
 	}
@@ -662,17 +684,18 @@ function ButtonSaveOnClick()
 			}
 			catch ({ name, message })
 			{
-				alert("Unexpected Error Saving: " + gameName + index + "\nConsole window has preserved save information. Copy and paste locally.\n" + name + "\n" + message);
+				alert("Unexpected Error Saving: " + gameName + index + "\nconsole window has preserved save information. Copy and paste locally.\n" + name + "\n" + message);
 				success = false;
 			}						
 		}
 	}				
-	LoadScript1(null, gameName);
+	LoadScript1(null, gameName);   // Refresh Navigation to show latest Save
 	MessageDisplay("<B>SAVE</B>", "#FF0000");
 }
 
 function ButtonLoadOnClick()
 {
+	// Paste may have obliterated gameEverything, so grab it again.
 	trsEmu.keyclearall();
 	if (loadRememberGameType == 1)
 	{
@@ -701,8 +724,6 @@ function ParamGameStart()
 
 function BodyOnLoad()
 {
-	SideNavOpen();
-
 	if (paramsTempGameName != null)
 	{
 		if (paramsTempGameLevelIndex > 1)
@@ -810,11 +831,9 @@ function BodyOnPaste(event)
 				gameEverything = JSON.parse(holdClipboardDataTrim);
 				if (typeof gameEverything.gameName != 'undefined')
 				{	
-					LoadHome(gameEverything.gameName, true);   // sets gameName
+					LoadHome(gameEverything.gameName, true);
+					gameName = gameEverything.gameName;
 					resetgame1();
-
-					LoadScript1(null, gameName);
-					DropDownToggle(null, gameName, 1);
 					
 					MessageDisplay("<B>PASTE</B>", "#FFFF00");
 					

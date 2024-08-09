@@ -307,6 +307,16 @@
 				walk <B>underneath</B> the sprinkler<BR>
 				<BR>
 			</LI>
+
+			<LI><A HRef='javascript:LoadScript1(event, "DONUT", 5, false);'>Troy's Bucket</A><BR>
+				pass that damn <B>bucket</B><BR>
+				<BR>
+			</LI>
+
+			<LI><A HRef='javascript:LoadScript1(event, "DONUT", 6, false);'>I Would Walk 500</A><BR>
+				get that <B>500</B>, it's totally doable<BR>
+				<BR>
+			</LI>
 		</OL>
 		
 		<!--
@@ -1353,7 +1363,10 @@
 	<BR>
 	<UL Style="color:#CCCCCC;">
 		<LI>
+			<!--
 			The best Donkey Kong, until the <A href="index.html?gameName=DONKEYKONG">king returned</A><BR>
+			-->
+			The best Donkey Kong, until the <A href="javascript:LoadHome('DONKEYKONG');">king returned</A><BR>
 			<BR>
 		</LI>
 
@@ -2027,7 +2040,7 @@ Whatever pelf is.
 <DIV ID="message" style="position:absolute;left:50px;top:50px;width:25px;height:25px;margin:0px;padding:0px;color:#FFFFFF;text-align:center;display:none;"></DIV>
 
 <DIV ID="Buttons" Style="position:absolute;top:10px;right:30px;width:50px;margin:0px;padding:0px;display:none;">
-	<DIV ID="ButtonClose" OnClick="LoadHome(gameName, false);" Style="margin:0px 0px 20px 0px;padding:0px;border:2px solid white;font-size:20px;width:50px;height:50px;text-align:center;"><DIV Style="margin:10px 0px 0px 0px;" ID="ButtonCloseText"><B>X</B></DIV></DIV>
+	<DIV ID="ButtonClose" OnClick="LoadHome(homeGameName, false);" Style="margin:0px 0px 20px 0px;padding:0px;border:2px solid white;font-size:20px;width:50px;height:50px;text-align:center;"><DIV Style="margin:10px 0px 0px 0px;" ID="ButtonCloseText"><B>X</B></DIV></DIV>
 	<DIV ID="ButtonPause" OnClick="ButtonPauseOnClick();" Style="margin:0px 0px 20px 0px;padding:0px;border:2px solid white;font-size:20px;width:50px;height:50px;text-align:center;"><DIV Style="margin:10px 0px 0px 0px;" ID="ButtonPauseText"><B>ll</B></DIV></DIV>
 	<DIV ID="ButtonFast" OnClick="ButtonFastOnClick();" Style="margin:0px 0px 40px 0px;padding:0px;border:2px solid white;font-size:20px;width:50px;height:50px;text-align:center;"><DIV Style="margin:10px 0px 0px 0px;" ID="ButtonFastText"><B>1X</B></DIV></DIV>
 	<DIV ID="ButtonSave" OnClick="ButtonSaveOnClick();" Style="margin:0px 0px 20px 0px;padding:0px;border:2px solid white;font-size:20px;width:50px;height:50px;text-align:center;"><DIV Style="margin:10px 0px 0px 0px;" ID="ButtonSaveText"><B>SV</B></DIV></DIV>
@@ -2035,7 +2048,7 @@ Whatever pelf is.
 </DIV>
 
 <DIV ID="VideoButtons" Style="position:absolute;top:10px;right:30px;width:50px;margin:0px;padding:0px;display:none;">
-	<DIV ID="VideoButtonClose" OnClick="LoadHome(gameName, false);" Style="margin:0px 0px 20px 0px;padding:0px;border:2px solid white;font-size:20px;width:50px;height:50px;text-align:center;"><DIV Style="margin:10px 0px 0px 0px;" ID="ButtonCloseText"><B>X</B></DIV></DIV>
+	<DIV ID="VideoButtonClose" OnClick="LoadHome(homeGameName, false);" Style="margin:0px 0px 20px 0px;padding:0px;border:2px solid white;font-size:20px;width:50px;height:50px;text-align:center;"><DIV Style="margin:10px 0px 0px 0px;" ID="ButtonCloseText"><B>X</B></DIV></DIV>
 </DIV>
 
 <DIV ID="PARAMtext" Style="position:absolute;left:0px;top:0px;width:100vw;height:100vh;background:#000000CC;display:none;">
