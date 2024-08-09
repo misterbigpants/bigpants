@@ -1,7 +1,6 @@
 {
 	// crzpnt13.cmd (local stash)
 	// https://willus.com/trs80/?-a+-1+-p+2948+-f+13+q=crazy+painter
-	// |[1]\r0\r[1]{bin/crzpnt13.cmd}
 	gamesList.CRAZYPAINTERLOAD = "|[1]\r0\r[1]{game-CRAZYPAINTER.cmd?cachebreaker=" + configCacheBreaker + "}";			
 	gamesList.CRAZYPAINTER = [];
 	gamesList.CRAZYPAINTER[0] = JSON.parse('{"gameName":"CRAZYPAINTER","gameTitle":"Load","gameDate":"Sat Jun 29 2024 21:42:53 GMT-0400 (Eastern Daylight Time)","PC":-1}');

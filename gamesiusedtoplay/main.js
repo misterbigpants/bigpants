@@ -1,6 +1,13 @@
 "use strict";
+/*
+Going Live: 4 things
+1. gamesList - don't show all games
+2. configCacheBreaker
+3. configDebug = 0
+4. change if (holdCacheBreaker != configCacheBreaker)
+*/
 
-var configCacheBreaker = 36; //  Math.floor(Math.random() * 10000);
+var configCacheBreaker = 37; //  Math.floor(Math.random() * 10000);
 var configDebug = 0;  // Debug mode adds tedious Load to menus (slow load of .CMD/.DMK game source files that we make snapshots of)
 var urlSearchParams = new URLSearchParams(window.location.search);
 
@@ -26,11 +33,10 @@ var gamesList = [
 	, "PENETRATOR", "DANCINGDEMON", "EMPIRE"
 	, "LIBERATOR", "DONKEYKONG"
 	, "AIRRAID", "FLYINGSAUCERS"
+	, "DONUT"
 	, "CYBORG", "ASSAULT"
 	, "GHOSTS"
-	/*
-	, "WEERD", "TIMEBANDIT", "AIRRAID", "FLYINGSAUCERS"
-	*/
+	/* , "WEERD", "TIMEBANDIT" */
 ];
 
 var gamesInfo = {};
@@ -41,13 +47,15 @@ gamesInfo.SCARFMAN = { "index":3, "key":"SCARFMAN", "caption": "SCARFMAN", "back
 gamesInfo.PENETRATOR = { "index":4, "key":"PENETRATOR", "caption": "PENETRATOR", "backgroundImage": "game-PENETRATORImage2.jpg", "videoid": "XbXGahP5fsA?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [2 * 60 + 21, 6 * 60 + 39, 7 * 60 + 24]};
 gamesInfo.DANCINGDEMON = { "index":5, "key":"DANCINGDEMON", "caption": "DANCING DEMON", "backgroundImage": "game-DANCINGDEMONImage1.jpg", "videoid": "5XLoNJ4l--E?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [0 * 60 + 14, 7 * 60 + 35, 9 * 60 + 5]};
 gamesInfo.EMPIRE = { "index":6, "key":"EMPIRE", "caption": "EMPIRE", "backgroundImage": "game-EMPIREImage1.png", "videoid": "k2gDhfE5wWw?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [5 * 60 + 16, 16 * 60 + 30, 29 * 60 + 13]};
-gamesInfo.LIBERATOR = { "index":7, "key":"LIBERATOR", "caption": "LIBERATOR", "backgroundImage": "game-LIBERATORImage1.jpg", "videoid": "CVYXgexc7Mk?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [2 * 60 + 21, 3 * 60 + 17, 4 * 60 + 55]};
+gamesInfo.LIBERATOR = { "index":7, "key":"LIBERATOR", "caption": "LIBERATOR", "backgroundImage": "game-LIBERATORImage2.png", "videoid": "CVYXgexc7Mk?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [2 * 60 + 21, 3 * 60 + 17, 4 * 60 + 55]};
 gamesInfo.DONKEYKONG = { "index": 8, "key": "DONKEYKONG", "caption": "DONKEY KONG", "backgroundImage": "game-DONKEYKONGImage1.gif", "videoid": "CVYXgexc7Mk?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1&start=388", "videomoments": [9 * 60 + 0, 13 * 60 + 20, 14 * 60 + 30]};
-gamesInfo.AIRRAID = { "index": 9, "key": "AIRRAID", "caption": "AIR RAID", "backgroundImage": "game-AIRRAIDImage1.jpg", "videoid": "MktIMzw9qtI?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1&start=388", "videomoments": [] };
+gamesInfo.AIRRAID = { "index": 9, "key": "AIRRAID", "caption": "AIR RAID", "backgroundImage": "game-AIRRAIDImage1.jpg", "videoid": "MktIMzw9qtI?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1&start=388", "videomoments": [7 * 60 + 15] };
 gamesInfo.FLYINGSAUCERS = { "index": 10, "key": "FLYINGSAUCERS", "caption": "FLYING SAUCERS", "backgroundImage": "game-FLYINGSAUCERSImage1.png", "videoid": "MktIMzw9qtI?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [55, 2 * 60 + 18] };
-gamesInfo.CYBORG = { "index": 11, "key": "CYBORG", "caption": "CYBORG", "backgroundImage": "game-CYBORGImage1.jpg", "videoid": "Bh0eE3Tf2_Y", "videomoments": [] };
-gamesInfo.ASSAULT = { "index": 12, "key": "ASSAULT", "caption": "ASSAULT", "backgroundImage": "game-ASSAULTImage1.jpg", "videoid": "Bh0eE3Tf2_Y", "videomoments": [] };
-gamesInfo.GHOSTS = { "index": 13, "key": "GHOSTS", "caption": "13 GHOSTS", "backgroundImage": "game-GHOSTSImage1.jpg", "videoid": "ZQDqYZ2pgOs", "videomoments": [] };
+gamesInfo.DONUT = { "index": 11, "key": "DONUT", "caption": "DONUT DILEMMA", "backgroundImage": "game-DONUTImage1.png", "videoid": "TXDiwTNPKqw?list=PLL1GJzE_yK8ycBR2hJmbsHXNWjqTEV2t1", "videomoments": [3 * 60 + 27, 12 * 60 + 46, 15 * 60] };
+
+gamesInfo.CYBORG = { "index": 12, "key": "CYBORG", "caption": "CYBORG", "backgroundImage": "game-CYBORGImage1.jpg", "videoid": "Bh0eE3Tf2_Y", "videomoments": [] };
+gamesInfo.ASSAULT = { "index": 13, "key": "ASSAULT", "caption": "ASSAULT", "backgroundImage": "game-ASSAULTImage1.jpg", "videoid": "Bh0eE3Tf2_Y", "videomoments": [] };
+gamesInfo.GHOSTS = { "index": 14, "key": "GHOSTS", "caption": "13 GHOSTS", "backgroundImage": "game-GHOSTSImage1.jpg", "videoid": "ZQDqYZ2pgOs", "videomoments": [] };
 
 gamesInfo.WEERD = {"index":14, "key":"WEERD", "caption": "WEERD", "backgroundImage": "game-WEERDImage1.jpg", "videoid": "ZQDqYZ2pgOs", "videomoments": []};
 gamesInfo.TIMEBANDIT = {"index":15, "key":"TIMEBANDIT", "caption": "TIME BANDIT", "backgroundImage": "game-TIMEBANDITImage1.jpg", "videoid": "ZQDqYZ2pgOs", "videomoments": []};
@@ -61,12 +69,6 @@ gamesInfo.TIMEBANDIT = {"index":15, "key":"TIMEBANDIT", "caption": "TIME BANDIT"
 collection[i].addEventListener("click", DropDownToggle);
 // if click event already hooked, will not add TWO (thank god).
 // global event object is implicitly passed as first argument (by value hopefully?)
-
-Going Live: 4 things
-1. gamesList - don't show all games
-2. configCacheBreaker
-3. configDebug = 0
-4. change if (holdCacheBreaker != configCacheBreaker)
 
 Adding a game: 4 Things
 1. Add to gamesList with ID. i.e. TIMEBANDIT
@@ -301,10 +303,10 @@ function SideNavInitialize() {
 	</DIV>
 
 	<div id="mySidenav" class="sidenav" style="display:none;" OnClick="event.stopPropagation();"><div Style="padding:10px 20px calc(100vh) 10px;">
-	<A HRef='../index.htm' Style="font-weight:normal;font-size:11px;">back to bigpants</A><BR>
-	<BR>
-	<A HRef="index.html" Style="font-size:125%;"><B>HOME</B></A><BR>
-	<BR>
+		<A HRef='../index.htm' Style="font-weight:normal;font-size:11px;">back to bigpants</A><BR>
+		<BR>
+		<A HRef="index.html" Style="font-size:125%;"><B>HOME</B></A><BR>
+		<BR>
 `;
 
 	for (var index = 0; index < gamesList.length; index++)
@@ -315,8 +317,20 @@ function SideNavInitialize() {
 	}
 
 	innerHTML += `
-			<a OnClick="SideNavClose(event);" class="closebtn">&times;</a>
-		</div></div>
+		<DIV Style="color:#CCCCCC;">
+			<B>CONTROLS</B><BR>
+			<DIV Style="clear:both;"><DIV Style="float:left;width:80px;"><B>Esc</B></DIV><DIV Style="float:left;">Trs-80 Break</DIV></DIV>			
+			<DIV Style="clear:both;"><DIV Style="float:left;width:80px;"><B>\\</B></DIV><DIV Style="float:left;">Trs-80 Clear</DIV></DIV>
+			<DIV Style="clear:both;"><DIV Style="float:left;width:80px;"><B>Ctrl+P</B></DIV><DIV Style="float:left;">Pause</DIV></DIV>			
+			<DIV Style="clear:both;"><DIV Style="float:left;width:80px;"><B>Ctrl+S</B></DIV><DIV Style="float:left;">Save</DIV></DIV>			
+			<DIV Style="clear:both;"><DIV Style="float:left;width:80px;"><B>Ctrl+L</B></DIV><DIV Style="float:left;">Load</DIV></DIV>
+			<DIV Style="clear:both;"><DIV Style="float:left;width:80px;"><B>Ctrl+C</B></DIV><DIV Style="float:left;">Copy</DIV></DIV>
+			<DIV Style="clear:both;"><DIV Style="float:left;width:80px;"><B>Ctrl+V</B></DIV><DIV Style="float:left;">Paste</DIV></DIV>
+			<DIV Style="clear:both;"></DIV>
+		</DIV>
+
+		<a OnClick="SideNavClose(event);" class="closebtn">&times;</a>
+	</div></div>
 		`;
 
 		var elemDiv = document.createElement('div');
@@ -687,6 +701,8 @@ function ParamGameStart()
 
 function BodyOnLoad()
 {
+	SideNavOpen();
+
 	if (paramsTempGameName != null)
 	{
 		if (paramsTempGameLevelIndex > 1)

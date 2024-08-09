@@ -1,5 +1,6 @@
 window['trsEmu'] = (function() {
 
+var keyBufferState = 1;   // Start with Special Game Keys enabled
 var keyBuffer = "";
 var keyBufferSingle = null;
 var keyBufferFrameCount = 0;
@@ -12011,20 +12012,11 @@ function KeyEventKeyboard()
 			if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }		
 			return false;
 		}
-		
-		// Shift Key
-		if (e.keyCode == 16)
-		{
-			z.keymatrix[0x400] = 1;
-			z.dev.kbd.update_key_bit(z, 0x400);
-			z.dev.kbd.update_key_echo(z);			
-			if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }		
-			return false;
+
+		if (e.keyCode != 16) {
+			if ((!(keycap[e.keyCode])) || (z.keyheld[e.keyCode] > 0)) { return; }   // do not allow key to be repeated until keyup
+			z.keyheld[e.keyCode] = 1;
 		}
-
-
-		if ((!(keycap[e.keyCode])) || (z.keyheld[e.keyCode] > 0)) { return; }   // do not allow key to be repeated until keyup
-		z.keyheld[e.keyCode] = 1;
 
 		if (e.ctrlKey)
 		{
@@ -12063,12 +12055,25 @@ function KeyEventKeyboard()
 				if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }		
 				return false;
 			}
+
+			// crtl enter - toggle custom keys on/off
+			else if (e.keyCode == 13)
+			{
+				if (keyBufferState == 1) {
+					keyBufferState = 0;
+					MessageDisplay("<B>SPECIAL KEYS\nDISABLED</B>", "#9090FF");
+				} else {
+					keyBufferState = 1;
+					MessageDisplay("<B>SPECIAL KEYS\nENABLED</B>", "#9090FF");
+				}
+				if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }		
+				return false;
+			}
 		}
 		
-		// <REGULAR KEYS>
 		// remap
 		var newKeyCode = e.keyCode;
-		if (!e.ctrlKey)
+		if ((!e.ctrlKey) && (keyBufferState == 1))
 		{
 			if (
 				(typeof gamesList[gameName + "KEYS"] != 'undefined')
@@ -12084,11 +12089,23 @@ function KeyEventKeyboard()
 				}							
 			}
 		}
-		var ascii = keycap[newKeyCode]; // keycap[newKeyCode + (e.shiftKey ? 1024 : 0)];
-		if (ascii) {
-			z.dev.kbd.ascii_down(z, ascii);
-			if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }		
+
+		// Shift Key
+		if (newKeyCode == 16) {
+			z.keymatrix[0x400] = 1;
+			z.dev.kbd.update_key_bit(z, 0x400);
+			z.dev.kbd.update_key_echo(z);
+			if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }
 			return false;
+		}
+		// Regular Keys
+		else {
+			var ascii = keycap[newKeyCode]; // keycap[newKeyCode + (e.shiftKey ? 1024 : 0)];
+			if (ascii) {
+				z.dev.kbd.ascii_down(z, ascii);
+				if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }
+				return false;
+			}
 		}
 	}
 
@@ -12120,24 +12137,15 @@ function KeyEventKeyboard()
 			if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }		
 			return false;
 		}
-		
-		// Shift Key
-		if (e.keyCode == 16) {
-			if (z.keymatrix[0x400] > 0) {
-				z.keymatrix[0x400] = 0;
-				z.dev.kbd.update_key_bit(z, 0x400);
-				z.dev.kbd.update_key_echo(z);			
-				if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }		
-				return false;
-			}
-		}
 
-		if ((!(keycap[e.keyCode])) || (z.keyheld[e.keyCode] == 0)) { return; }   // do not allow key to be repeated until keyup
-		z.keyheld[e.keyCode] = 0;
+		if (e.keyCode != 16) {
+			if ((!(keycap[e.keyCode])) || (z.keyheld[e.keyCode] == 0)) { return; }   // do not allow key to be repeated until keyup
+			z.keyheld[e.keyCode] = 0;
+		}
 		
 		// remap
 		var newKeyCode = e.keyCode;
-		if (!e.ctrlKey)
+		if ((!e.ctrlKey) && (keyBufferState == 1))
 		{
 			if (
 				(typeof gamesList[gameName + "KEYS"] != 'undefined')
@@ -12152,11 +12160,24 @@ function KeyEventKeyboard()
 				}
 			}
 		}
-		var ascii = keycap[newKeyCode]; // keycap[newKeyCode + (e.shiftKey ? 1024 : 0)];
-		if (ascii) {
-			z.dev.kbd.ascii_up(z, ascii);
-			if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }		
-			return false;
+
+		// Shift Key
+		if (newKeyCode == 16) {
+			if (z.keymatrix[0x400] > 0) {
+				z.keymatrix[0x400] = 0;
+				z.dev.kbd.update_key_bit(z, 0x400);
+				z.dev.kbd.update_key_echo(z);
+				if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }
+				return false;
+			}
+		}
+		else {
+			var ascii = keycap[newKeyCode]; // keycap[newKeyCode + (e.shiftKey ? 1024 : 0)];
+			if (ascii) {
+				z.dev.kbd.ascii_up(z, ascii);
+				if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }
+				return false;
+			}
 		}
 	}
 
