@@ -1,6 +1,6 @@
 {
   "short_name": "YouCanAlwaysGoBack",
   "name": "You Can Always Go Back",
-  "start_url": "./index.htm",
+  "start_url": "./index-game.htm",
   "display": "fullscreen"
 }
