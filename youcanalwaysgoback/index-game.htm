@@ -17,7 +17,7 @@ const urlParams = new URLSearchParams(window.location.search);
 var configCacheBreaker = Math.floor(Math.random() * 10000);
 var configDebug = 0;
 var configPaid = 0;
-var configVersion = "2024-10-06";
+var configVersion = "2024-10-15";
 var configMouseDisable = false;
 var configAnalytics = 1;
 </SCRIPT>
@@ -616,13 +616,13 @@ function MenuQuit(pEvent)
 	return MenuShow(pEvent, innerHTML);
 }
 
-function MenuFinalLevelFailed(pEvent)
+function MenuFinalLevelFailed()
 {
 	SoundBuffersStop();
 	SoundBufferPlay(mSoundBufferMisc, 1, SoundBufferMiscType.soundyoublewit);   // last buffered sound
 	let innerHTML = "YOU<BR><SPAN Style='color:#FFFFFFFF'>BLEW</SPAN><BR>IT";
 	GoogleAnalytics("Completed-Fail");	
-	return MenuShow(pEvent, innerHTML, MenuMain);
+	return MenuShow(null, innerHTML, MenuMain);
 }
 
 function MenuFinalLevelYes(pEvent)
@@ -3969,7 +3969,8 @@ function MusicStop()
 		if ((mLevelType == LevelType.Boss) && (mMusic.currentTime != 0)) { mTalkCurrentTimeRemember = mMusic.currentTime; }	
 		mMusic.pause();
 		mMusic.currentTime = 0;
-		mMusic.src = "";
+		// mMusic.src = "";   // causes "fail" to stop playing on mobile Safari, must be a valid path
+		mMusic.src = "sound-pop.mp3";
 		mMusic.rememberVolume = 1;		
 	}
 	if (mLevelType != LevelType.Boss) { mTalkCurrentTimeRemember = 0; }
@@ -5854,30 +5855,29 @@ function WordUpdateBackgroundWeekday()
 				mWord.jimOpacity = 1;
 				WordPosition();
 			}
-			else if (
-				(mTileTotal == 25)
-				|| ((mTileTotal < 25) && (mTileTotal == mTileTotalRemember))
-			)
+			else
 			{
-				if (mTileTotal == 25)
+				let innerHTML = "";
+				if (mWorldDayOfWeek == 0)
 				{
-					if (mWorldDayOfWeek == 0)
-					{
-						mWord.innerHTML = "Artist: The Happy Hollows<BR>Song: Silver<BR>Album: Spells<BR>2009";
-					} 
-					else if ( (mWorldDayOfWeek == 1) || (mWorldDayOfWeek == 4) )
-					{
-						mWord.innerHTML = "Artist: The Happy Hollows<BR>Song: Concordia<BR>Album: Concordia<BR>2017";
-					} 
-					else if ( (mWorldDayOfWeek == 2) || (mWorldDayOfWeek == 5) )
-					{
-						mWord.innerHTML = "Artist: The Happy Hollows<BR>Song: Chop Lifter<BR>Album: Amethyst<BR>2013";
-					}
-					else if ( (mWorldDayOfWeek == 3) || (mWorldDayOfWeek == 6) )
-					{
-						mWord.innerHTML = "Artist: The Happy Hollows<BR>Song: Endless<BR>Album: Amethyst<BR>2013";
-					}
+					innerHTML = "Artist: The Happy Hollows<BR>Song: Silver<BR>Album: Spells<BR>2009";
+				} 
+				else if ( (mWorldDayOfWeek == 1) || (mWorldDayOfWeek == 4) )
+				{
+					innerHTML = "Artist: The Happy Hollows<BR>Song: Concordia<BR>Album: Concordia<BR>2017";
+				} 
+				else if ( (mWorldDayOfWeek == 2) || (mWorldDayOfWeek == 5) )
+				{
+					innerHTML = "Artist: The Happy Hollows<BR>Song: Chop Lifter<BR>Album: Amethyst<BR>2013";
+				}
+				else if ( (mWorldDayOfWeek == 3) || (mWorldDayOfWeek == 6) )
+				{
+					innerHTML = "Artist: The Happy Hollows<BR>Song: Endless<BR>Album: Amethyst<BR>2013";
+				}
 
+				if (mWord.innerHTML != innerHTML)
+				{
+					mWord.innerHTML = innerHTML;
 					mWord.shakeRatio = 0.0;
 					mWord.style.zIndex = 1;
 					mWord.fontRatio = 1;
@@ -6081,32 +6081,38 @@ function WordUpdateBackground()
 			}
 			else if (mTileTotal <= 25)
 			{
+				let innerHTML = "";
 				switch (mLevelType)
 				{
-					case LevelType.Bonus: { mWord.innerHTML = "Artist: The Happy Hollows<BR>Song: Endless<BR>Album: Amethyst<BR>2013"; break; }
-					case LevelType.Boss: { mWord.innerHTML = "Artist: The Happy Hollows<BR>Song: Chop Lifter<BR>Album: Amethyst<BR>2013"; break; }
-					case LevelType.MileStone: { mWord.innerHTML = "Artist: The Happy Hollows<BR>Song: Concordia<BR>Album: Concordia<BR>2017"; break; }
-					case LevelType.OneHundred: { mWord.innerHTML = "Artist: The Happy Hollows<BR>Song: Silver<BR>Album: Spells<BR>2009"; break; }
+					case LevelType.Bonus: { innerHTML = "Artist: The Happy Hollows<BR>Song: Endless<BR>Album: Amethyst<BR>2013"; break; }
+					case LevelType.Boss: { innerHTML = "Artist: The Happy Hollows<BR>Song: Chop Lifter<BR>Album: Amethyst<BR>2013"; break; }
+					case LevelType.MileStone: { innerHTML = "Artist: The Happy Hollows<BR>Song: Concordia<BR>Album: Concordia<BR>2017"; break; }
+					case LevelType.OneHundred: { innerHTML = "Artist: The Happy Hollows<BR>Song: Silver<BR>Album: Spells<BR>2009"; break; }
 				}
-				if (mLevelType == LevelType.OneHundred)
+				
+				if (mWord.innerHTML != innerHTML)
 				{
-					mWord.shakeRatio = 0.0;
-					mWord.style.zIndex = 1;
-					mWord.fontRatio = 1;
-					mWord.jimColor = "#FFFFFF";
-					mWord.textShadowColor = "#00FFFF";
-					mWord.jimOpacity = 1;
+					mWord.innerHTML = innerHTML;
+					if (mLevelType == LevelType.OneHundred)
+					{
+						mWord.shakeRatio = 0.0;
+						mWord.style.zIndex = 1;
+						mWord.fontRatio = 1;
+						mWord.jimColor = "#FFFFFF";
+						mWord.textShadowColor = "#00FFFF";
+						mWord.jimOpacity = 1;
+					}
+					else
+					{
+						mWord.shakeRatio = 0.0;
+						mWord.style.zIndex = 1;
+						mWord.fontRatio = 1;
+						mWord.jimColor = "#FFFFFF";
+						mWord.textShadowColor = "#000000";
+						mWord.jimOpacity = 0.25;
+					}
+					WordPosition();
 				}
-				else
-				{
-					mWord.shakeRatio = 0.0;
-					mWord.style.zIndex = 1;
-					mWord.fontRatio = 1;
-					mWord.jimColor = "#FFFFFF";
-					mWord.textShadowColor = "#000000";
-					mWord.jimOpacity = 0.25;
-				}
-				WordPosition();
 			}
 			else
 			{
@@ -8366,7 +8372,6 @@ function SolveUpdateOLD(pMilliseconds)
 // ---------------------------------------------------------------------------------------------------------------------
 // <GRID GENERATION>
 // ---------------------------------------------------------------------------------------------------------------------
-
 function WorldResetCheck(pEmptyTileCount = -1)
 {
 	// mPlayer.xyIndex, mTileXYCount, and mTileTotal MUST be CURRENT
@@ -11561,6 +11566,8 @@ function WorldUpdateFailStuck(pFail)
 	// Should Urine or UseTheForce really call this? Love the idea of relocating ALL WordShow/Text here
 	console.assert(mState != -1, "WorldUpdateFailStuck() Error: We're called BUT mState == -1 (fail)");
 
+	MusicStop();
+
 	// <URINESTATE END FAILURE1>
 	if (mUrineState > 0)
 	{
@@ -11681,7 +11688,7 @@ function WorldUpdateFailStuck(pFail)
 
 		if (pFail)
 		{	
-			if ((mWorldRepeatCount % 4) == 0) { TalkPlay3000(TalkType2.instructions); }
+			if ( (mWorldMode == 0) && ((mWorldRepeatCount % 4) == 0) ) { TalkPlay3000(TalkType2.instructions); }
 		}
 		
 		var overrideWordShow = 0;   // 1:HAHA 2:PATHETIC (formerly used by Streak)
@@ -11763,7 +11770,6 @@ function WorldUpdateFailStuck(pFail)
 		}
 	}
 
-	MusicStop();
 	TilesWhite();
 	mPlayer.FaceChange(1);
 }
