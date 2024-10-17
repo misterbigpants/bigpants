@@ -16,7 +16,7 @@ const urlParams = new URLSearchParams(window.location.search);
 
 var configCacheBreaker = Math.floor(Math.random() * 10000);
 var configDebug = 0;
-var configPaid = 1;
+var configPaid = 0;
 var configVersion = "2024-10-06";
 var configMouseDisable = false;
 var configAnalytics = 1;
@@ -578,11 +578,12 @@ function MenuMain(pEvent, pMenuMainPreserveWorldState = -1)
 		+ "</SPAN>"
 		+ "</DIV>";
 	// </CHALLENGES>
-	
+
 	// innerHTML += "<DIV Style='padding-bottom:3%; color:#909090;'>BEGIN \"THE CLIMB\"</DIV>";
 	// innerHTML += "<DIV Style='padding-bottom:3%; color:#909090;'>BEGIN \"GRATUITOUS\"</DIV>";
-	
-	if (configPaid > 0)
+
+	if (true)
+	// if (configPaid > 0)
 	{
 		let hold = (mStatNewFrankLoss + mStatNewFrankWin == 0) ? "BEGIN": "CONTINUE";
 		innerHTML += "<DIV Style='padding-bottom:3%;'><SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='MenuMainRestart(event, 0, " + holdWorldDayOfWeek + "," + holdWorldEvening + ");'>" + hold + " \"FRANK'S STORY\"</SPAN></DIV>";   // CONTINUE / REPLAY
