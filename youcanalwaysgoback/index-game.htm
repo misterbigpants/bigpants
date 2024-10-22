@@ -19,7 +19,7 @@ var configDebug = 0;
 var configPaid = 1;
 var configVersion = "2024-10-15";
 var configMouseDisable = false;
-var configAnalytics = 1;
+var configAnalytics = 0;
 </SCRIPT>
 
 <!-- Google tag (gtag.js) -->
@@ -35,9 +35,11 @@ var configAnalytics = 1;
 </script>
 
 <!--
-DONE. Fix Numbers background - allows SPECIAL UseTheFOrce and other messages
-DONE. Ensure FINAL level uses GROW number
-. Copy to DayOfTheDevs, IGF AND Publisher new.bigpants.ca
+2024-10-22 DONE. PINK trail should override yellow trail.
+2024-10-22 DONE. Player should leave yellow trail.
+2024-10-21 DONE. Fix Numbers background - allows SPECIAL UseTheFOrce and other messages
+2024-10-21 DONE. Ensure FINAL level uses GROW number
+2024-10-21 DONE. Copy to DayOfTheDevs, IGF AND Publisher new.bigpants.ca
 
 Levels: 5 Intense Levels: Chop up the super intense levels into 5+1
 (10 is just TOO much, make the +1 dense 10x10)
@@ -1499,17 +1501,11 @@ function LevelsGet(pURL)
 		// Everything should be ok, process the result here
 		mLevels = JSON.parse(jsmin(result));   // jsmin removes the comments in the json file and returns the string json
 
-
-
-
-
 if (false)
 {
 
-
 mLevels =
 [
-
 ];
 
 }
@@ -4915,8 +4911,12 @@ this.Update = function()
 												// Regular leaves yellow (considering black)
 												else
 												{
-													TileSetColor(mPlayFieldDivs[player.xyIndex], 255, 255, 100, 2);
-													TileSetColorTemp(mPlayFieldDivs[player.xyIndex], 750, 255, 255, 100);
+													let tile = mPlayFieldDivs[player.xyIndex];
+													if (!((tile.colorR = 255) && (tile.colorG == 100) && (tile.colorB == 255)))
+													{
+														TileSetColor(tile, 255, 255, 100, 2);
+														TileSetColorTemp(tile, 750, 255, 255, 100);
+													}
 												}
 											}
 
@@ -5565,13 +5565,12 @@ function WordShow(pInnerHTML, pColor = "", pTextShadowColor = "", pFontRatio = 0
 {
 	PreserveInnerHTML = pInnerHTML; PreserveColor = pColor; PreserveTextShadowColor = pTextShadowColor; PreserveFontRatio = pFontRatio; PreserveAlive = pDEADEADAlive; PreserveShakeRatio = pShakeRatio; 
 	if (pColor == "") { pColor = "#1F0068"; }
-	if (pTextShadowColor == "") { mWord.textShadowColor = "#000000"; }
+	if (pTextShadowColor == "") { pTextShadowColor = "#000000"; }
 	if (pFontRatio == 0) { pFontRatio = 1; }
 
 	mWord.aliveRemember = Date.now();   // starts flying in (make it 0 to put immediately in background)	
 	WordSet(pInnerHTML, pShakeRatio, 20, pFontRatio, pColor, pTextShadowColor);
-	// WordSet(pInnerHTLML, pShakeRatio, pZIndex, pFontRatio, pJimColor, pTextShadowColor, pJimOpacity = 1)
-	
+	// WordSet(pInnerHTML, pShakeRatio, pZIndex, pFontRatio, pJimColor, pTextShadowColor, pJimOpacity = 1)	
 }
 
 function WordPosition()
@@ -5607,6 +5606,8 @@ function WordPosition()
 	textShadowColor = mWord.textShadowColor;
 
 	textShadowSize = parseInt(mWord.fontSizeMain * 0.04 + 1);
+	console.assert(textShadowSize > 0, "WordPosition Error: textShadowSize '" + textShadowSize + "' is invalid");
+	if (textShadowSize < 2) { textShadowSize = 2; }
 	mWord.style.textShadow = textShadowSize + "px " + textShadowSize + "px " + "0px " + textShadowColor + "66";
 
 	textShadowSize = parseInt(mWord.fontSizeMain * 0.04 * 0.7 + 1);
@@ -5681,7 +5682,7 @@ function WordUpdateCountdown(pNumber)
 	}
 	
 	WordSet(holdHTML, holdShakeRatio, 1, holdFontRatio, "#FFFFFF", "#000000", 0.5);
-	// WordSet(pInnerHTLML, pShakeRatio, pZIndex, pFontRatio, pJimColor, pTextShadowColor, pJimOpacity = 1)
+	// WordSet(pInnerHTML, pShakeRatio, pZIndex, pFontRatio, pJimColor, pTextShadowColor, pJimOpacity = 1)
 }
 
 function WordUpdateGrow()
@@ -5850,7 +5851,7 @@ function WordUpdateUseTheForce()
 	}
 }
 
-let mWeekdayGrowFlag = true;
+let mWeekdayGrowFlag = false;
 function WordUpdateBackgroundWeekday()
 {
 	if (mGrowCount > 0)
@@ -5866,7 +5867,7 @@ function WordUpdateBackgroundWeekday()
 			if (mState == 1)
 			{
 				mWeekdayGrowFlag = false;		
-				// WordSet(pInnerHTLML, pShakeRatio, pZIndex, pFontRatio, pJimColor, pTextShadowColor, pJimOpacity = 1)				
+				// WordSet(pInnerHTML, pShakeRatio, pZIndex, pFontRatio, pJimColor, pTextShadowColor, pJimOpacity = 1)				
 				WordSet("", 0, 1, 1, "#FFFFFF", "#00FFFF");
 			}
 			
@@ -5935,9 +5936,9 @@ function WordUpdateBackgroundWeekday()
 }
 
 
-function WordSet(pInnerHTLML, pShakeRatio, pZIndex, pFontRatio, pJimColor, pTextShadowColor, pJimOpacity = 1)
+function WordSet(pInnerHTML, pShakeRatio, pZIndex, pFontRatio, pJimColor, pTextShadowColor, pJimOpacity = 1)
 {
-	mWord.innerHTML = pInnerHTLML;
+	mWord.innerHTML = pInnerHTML;
 	mWord.shakeRatio = pShakeRatio;   // 0.0;
 	mWord.style.zIndex = pZIndex;
 	mWord.fontRatio = pFontRatio;   // 1;
@@ -10001,7 +10002,8 @@ function WorldResetFinish()
 		mState = SolveUpdate(2000);
 	}
 	*/
-	mGrowWordTileTotal = 0;
+	mWeekdayGrowFlag = false;   // number in background growing towards player
+	mGrowWordTileTotal = 0;   // size of that number
 
 	CurtainRefresh(2);	
 	WorldPlayFieldResize();	
@@ -12272,7 +12274,7 @@ function Player()
 						mPlayField[this.xyIndex] = 0;   // kills tile, TilesUpdate will send it flying away towards corner
 						if (mPlayFieldDivs[this.xyIndex].extra == 0) { mTileTotal--; }   // Player already Failed (mState = 1) from stepping on Extra tile, BUT just being paranoid							
 
-						if (mState != 1) { TileSetColor(mPlayFieldDivs[this.xyIndex], 0, 0, 64, 0); }
+						if (mState != 1) { TileSetColor(mPlayFieldDivs[this.xyIndex], 255, 255, 64, 0); }
 						// </BEFORE>
 						
 						// <AFTER>							
