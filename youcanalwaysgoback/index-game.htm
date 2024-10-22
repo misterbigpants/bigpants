@@ -16,7 +16,7 @@ const urlParams = new URLSearchParams(window.location.search);
 
 var configCacheBreaker = Math.floor(Math.random() * 10000);
 var configDebug = 0;
-var configPaid = 0;
+var configPaid = 1;
 var configVersion = "2024-10-15";
 var configMouseDisable = false;
 var configAnalytics = 1;
@@ -35,6 +35,15 @@ var configAnalytics = 1;
 </script>
 
 <!--
+DONE. Fix Numbers background - allows SPECIAL UseTheFOrce and other messages
+DONE. Ensure FINAL level uses GROW number
+. Copy to DayOfTheDevs, IGF AND Publisher new.bigpants.ca
+
+Levels: 5 Intense Levels: Chop up the super intense levels into 5+1
+(10 is just TOO much, make the +1 dense 10x10)
+
+SnakeMirror: more holes, increase regular size by 1
+
 ToDo:
 DONE. Check all Frank's levels pass WorldCheck (suspect they don't)
 
@@ -136,6 +145,8 @@ padding-bottom:calc(100vh * 0.035);
 
 <SCRIPT>
 "use strict"; 
+
+var documentBodyStyleBackgroundColor = "";
 
 function GoogleAnalytics(pExtra)
 {
@@ -572,18 +583,23 @@ function MenuMain(pEvent, pMenuMainPreserveWorldState = -1)
 	// </WEEKDAY>
 
 	// <CHALLENGES>
-	innerHTML += "<DIV Style='padding-bottom:6%; color:#FFFF00;'>"
+	innerHTML += "<DIV Style='padding-bottom:3%; color:#FFFF00;'>"
 		+ "<SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='MenuChallenges(event, 1);'>"
-		+ eveningCaption + " CHALLENGES"
+		+ eveningCaption + " CHALLENGES I"
+		+ "</SPAN>"
+		+ "</DIV>";
+
+	innerHTML += "<DIV Style='padding-bottom:6%; color:#FFFF00;'>"
+		+ "<SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='MenuChallenges(event, 2);'>"
+		+ eveningCaption + " CHALLENGES II"
 		+ "</SPAN>"
 		+ "</DIV>";
 	// </CHALLENGES>
-
+	
 	// innerHTML += "<DIV Style='padding-bottom:3%; color:#909090;'>BEGIN \"THE CLIMB\"</DIV>";
 	// innerHTML += "<DIV Style='padding-bottom:3%; color:#909090;'>BEGIN \"GRATUITOUS\"</DIV>";
-
-	if (true)
-	// if (configPaid > 0)
+	
+	if (configPaid > 0)
 	{
 		let hold = (mStatNewFrankLoss + mStatNewFrankWin == 0) ? "BEGIN": "CONTINUE";
 		innerHTML += "<DIV Style='padding-bottom:3%;'><SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='MenuMainRestart(event, 0, " + holdWorldDayOfWeek + "," + holdWorldEvening + ");'>" + hold + " \"FRANK'S STORY\"</SPAN></DIV>";   // CONTINUE / REPLAY
@@ -1243,7 +1259,7 @@ function UserData()
 		// MUST ONLY BE CALLED BY WorldChange. mWorldEvening MUST stay in sync with SaveCurrentDay
 		// otherwise could play Daytime and save Evening
 		let d = null;
-		for (let index = 0; index < 14; index++)   // 0=Sunday, 6=Sat
+		for (let index = 0; index < 21; index++)   // 0=Sunday, 6=Sat
 		{
 			this.weekday[index] = new Array(2);   // short form doesn't allow length (which might not do anything)
 
@@ -1257,7 +1273,7 @@ function UserData()
 
 				this.weekday[index][evening].caption = "missing short";
 				this.weekday[index][evening].captionLong = "missing long";
-				this.weekday[index][evening].growCount = (evening > 0) ? 20 : 10
+				this.weekday[index][evening].growCount = (evening > 0) ? 15 : 10
 				this.weekday[index][evening].talkType = 0;
 				this.weekday[index][evening].talkTypeValue = 0;
 
@@ -1271,9 +1287,11 @@ function UserData()
 				{
 					switch (index)
 					{
+
+					// <CHALLENGE I>
+					// Level0007.json - 0013.json
 					case 7:
 					{
-						// Level07.json
 						this.weekday[index][evening].caption = "EZ";
 						this.weekday[index][evening].captionLong = "Easy Living";
 						break;
@@ -1314,6 +1332,56 @@ function UserData()
 						this.weekday[index][evening].captionLong = "Fun Bags";
 						break;
 					}
+					// </CHALLENGE I>
+
+
+					// <CHALLENGE II>
+					// Level0014.json - 0021.json
+					case 14:
+					{
+						// Level07.json
+						this.weekday[index][evening].caption = "You";
+						this.weekday[index][evening].captionLong = "You";
+						break;
+					}
+					case 15:
+					{
+						this.weekday[index][evening].caption = "Are";
+						this.weekday[index][evening].captionLong = "Are";
+						break;
+					}
+					case 16:
+					{
+						this.weekday[index][evening].caption = "Going";
+						this.weekday[index][evening].captionLong = "Going";
+						break;
+					}
+					case 17:
+					{
+						this.weekday[index][evening].caption = "To";
+						this.weekday[index][evening].captionLong = "To";
+						break;
+					}
+					case 18:
+					{
+						this.weekday[index][evening].caption = "Love";
+						this.weekday[index][evening].captionLong = "Love";
+						break;
+					}
+					case 19:
+					{
+						this.weekday[index][evening].caption = "These";
+						this.weekday[index][evening].captionLong = "These";
+						break;
+					}
+					case 20:
+					{
+						this.weekday[index][evening].caption = "Levels";
+						this.weekday[index][evening].captionLong = "Levels";
+						break;
+					}
+					// </CHALLENGE II>
+
 					}
 				}
 
@@ -1347,8 +1415,6 @@ var mUserData = new UserData();
 var mWorldMode = 1;  // 0:Narrative (Original)   1:DayOfWeek (Monday - Sunday, mUserData)
 var mWorldDayOfWeek = -1;   // maps to Javascript:getDay 0:Sun 1:Mon .. 6:Sa (set in Load)
 var mWorldEvening = -1;   // 0:Daytime 1:Evening
-
-var documentBodyStyleBackgroundColor = "";
 
 var mWorldLevelCount = -1;   // NEW 2024-10-14. Counts from when player started/restarted. Note: If they continue Frank, mWorldLevelCount starts at 0
 
@@ -1433,6 +1499,21 @@ function LevelsGet(pURL)
 		// Everything should be ok, process the result here
 		mLevels = JSON.parse(jsmin(result));   // jsmin removes the comments in the json file and returns the string json
 
+
+
+
+
+if (false)
+{
+
+
+mLevels =
+[
+
+];
+
+}
+
 /*
 // 2024-10-15 This Test Worked
 let holdErrorMessage = "";
@@ -1493,9 +1574,6 @@ console.log("DONE");
 */
 	if (false)
 	{
-		mLevels =
-		[
-		];
 
 		// JSON CONVERSION (copy paste from console window)
 		let hold = "";
@@ -2959,7 +3037,7 @@ function TalkTypeExtraSet(pStateType2, pStart = false)
 	// <TURN ON>
 	if (pStateType2 > 0)
 	{
-		if ( (mLevelIndex > -1) && (mLevels[mLevelIndex][15] != null) )
+		if ( (mLevelIndex > -1) && ((mLevels[mLevelIndex].length > 15) && (mLevels[mLevelIndex][15] != null)) )
 		{
 			let holdExtras = [];
 			for (let extraIndex = 0; extraIndex < mLevels[mLevelIndex][15].length; extraIndex++)
@@ -3608,7 +3686,6 @@ function FrankWordUpdate()
 	mWord.fontRatio = 1; 
 	mWord.jimColor = "#000000";
 	mWord.textShadowColor = "#0000FF66";
-	mWord.jimOpacity = 1;						
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -5486,20 +5563,15 @@ function WordShowResize()
 
 function WordShow(pInnerHTML, pColor = "", pTextShadowColor = "", pFontRatio = 0, pDEADEADAlive = 0, pShakeRatio = 0.0)
 {
-	PreserveInnerHTML = pInnerHTML; PreserveColor = pColor; PreserveTextShadowColor = pTextShadowColor; PreserveFontRatio = pFontRatio; PreserveAlive = pDEADEADAlive; PreserveShakeRatio = pShakeRatio;
+	PreserveInnerHTML = pInnerHTML; PreserveColor = pColor; PreserveTextShadowColor = pTextShadowColor; PreserveFontRatio = pFontRatio; PreserveAlive = pDEADEADAlive; PreserveShakeRatio = pShakeRatio; 
+	if (pColor == "") { pColor = "#1F0068"; }
+	if (pTextShadowColor == "") { mWord.textShadowColor = "#000000"; }
+	if (pFontRatio == 0) { pFontRatio = 1; }
 
-	mWord.style.zIndex = 20;
-	mWord.jimOpacity = 1;
-	mWord.innerHTML = pInnerHTML;
- 
-	if (pColor == "") { mWord.jimColor = "#1F0068"; } else { mWord.jimColor = pColor; }
-	if (pTextShadowColor == "") { mWord.textShadowColor = "#000000"; } else { mWord.textShadowColor = pTextShadowColor; }
-
-	if (pFontRatio == 0) { mWord.fontRatio = 1; } else { mWord.fontRatio = pFontRatio; }
-	mWord.aliveRemember = Date.now();   // starts flying in (make it 0 to put immediately in background)
-	mWord.shakeRatio = pShakeRatio;
-		
-	WordPosition();
+	mWord.aliveRemember = Date.now();   // starts flying in (make it 0 to put immediately in background)	
+	WordSet(pInnerHTML, pShakeRatio, 20, pFontRatio, pColor, pTextShadowColor);
+	// WordSet(pInnerHTLML, pShakeRatio, pZIndex, pFontRatio, pJimColor, pTextShadowColor, pJimOpacity = 1)
+	
 }
 
 function WordPosition()
@@ -5529,28 +5601,8 @@ function WordPosition()
 
 	var textShadowColor = "";
 	var textShadowSize = -1;
-	
-	/*
-	if (mWord.aliveRemember == 0)
-	{
-		console.log("MWOARD:" + mWord.textShadowColor);
-		var holdOld = hexToRgb(StyleRGBToHex(document.body.style.backgroundColor));
-		var holdNew = hexToRgb(mWord.textShadowColor);
-		// var holdOld = hexToRgb(mWord.textShadowColor);   // hexToRgb(StyleRGBToHex(document.body.style.backgroundColor));
-		// var holdNew = [0, 0, 0]; //  hexToRgb(mWord.textShadowColor);
 		
-		holdOld[0] = holdOld[0] + ((holdNew[0] - holdOld[0]) * 0.4);
-		holdOld[1] = holdOld[1] + ((holdNew[1] - holdOld[1]) * 0.4);
-		holdOld[2] = holdOld[2] + ((holdNew[2] - holdOld[2]) * 0.4);
-
-		textShadowColor = RGBToHex(holdOld[0], holdOld[1], holdOld[2]);
-		console.log("textShadowColor:" + textShadowColor);
-	}
-	else
-	{
-		textShadowColor = mWord.textShadowColor;
-	}
-	*/
+	let holdInnerHTML = mWord.innerHTML;
 	
 	textShadowColor = mWord.textShadowColor;
 
@@ -5559,15 +5611,17 @@ function WordPosition()
 
 	textShadowSize = parseInt(mWord.fontSizeMain * 0.04 * 0.7 + 1);
 	if (textShadowSize < 2) { textShadowSize = 2; }
-	mWord.innerHTML = mWord.innerHTML.replace(/textShadow75/g, "text-shadow:" + textShadowSize + "px " + textShadowSize + "px " + "0px " + textShadowColor + "66");
+	holdInnerHTML = holdInnerHTML.replace(/textShadow75/g, "text-shadow:" + textShadowSize + "px " + textShadowSize + "px " + "0px " + textShadowColor + "66");
 
 	textShadowSize = parseInt(mWord.fontSizeMain * 0.04 * 0.4 + 1);
 	if (textShadowSize < 2) { textShadowSize = 2; }
-	mWord.innerHTML = mWord.innerHTML.replace(/textShadow50/g, "text-shadow:" + textShadowSize + "px " + textShadowSize + "px " + "0px " + textShadowColor + "66");
+	holdInnerHTML = holdInnerHTML.replace(/textShadow50/g, "text-shadow:" + textShadowSize + "px " + textShadowSize + "px " + "0px " + textShadowColor + "66");
 
 	textShadowSize = parseInt(mWord.fontSizeMain * 0.04 * 0.2 + 1);
 	if (textShadowSize < 2) { textShadowSize = 2; }
-	mWord.innerHTML = mWord.innerHTML.replace(/textShadow25/g, "text-shadow:" + textShadowSize + "px " + textShadowSize + "px " + "0px " + textShadowColor + "66");
+	holdInnerHTML = holdInnerHTML.replace(/textShadow25/g, "text-shadow:" + textShadowSize + "px " + textShadowSize + "px " + "0px " + textShadowColor + "66");
+
+	if (mWord.innerHTML != holdInnerHTML) { mWord.innerHTML = holdInnerHTML; }
 	// </FONT SIZE>
 		
 	// <POSITION>
@@ -5580,85 +5634,80 @@ function WordPosition()
 
 function WordUpdateCountdown(pNumber)
 {
+	let holdHTML = "";
+	let holdFontRatio = 1;
+	let holdShakeRatio = 0;
+	
 	switch (pNumber)
 	{
 	case 1:
 	{
-		mWord.innerHTML = ""
+		holdHTML = (""
 			+ "ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;<BR>"
 			+ "NE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;O<BR>"
 			+ "E&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ON<BR>"
 			+ "&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE&nbsp;ONE<BR>"
-			+ "";
-		mWord.innerHTML = mWord.innerHTML.repeat(7);
-		mWord.fontRatio = 4.0; 
-		mWord.shakeRatio = 0.01;
+			+ "").repeat(7);
+		holdFontRatio = 4.0; 
+		holdShakeRatio = 0.01;
 		break;
 	}
 	case 2:
 	{
-		mWord.innerHTML = ""
+		holdHTML = (""
 			+ "TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;<BR>"
 			+ "WO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;O<BR>"
 			+ "O&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;ON<BR>"
 			+ "&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO&nbsp;TWO<BR>"
-			+ "";
-		mWord.innerHTML = mWord.innerHTML.repeat(4);
-		mWord.fontRatio = 8.0; 
-		mWord.shakeRatio = 0;
+			+ "").repeat(4);
+		holdFontRatio = 8.0; 
+		holdShakeRatio = 0;
 		break;	
 	}
 	case 3:
 	{
-		mWord.innerHTML = ""
+		holdHTML = (""
 			+ "THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;<BR>"
 			+ "HREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;<BR>"
 			+ "REE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;<BR>"
 			+ "EE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;<BR>"
 			+ "E&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;<BR>"
 			+ "&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;THREE&nbsp;<BR>"
-			+ "";
-		mWord.innerHTML = mWord.innerHTML.repeat(2);
-		mWord.fontRatio = 16.0;
-		mWord.shakeRatio = 0;
+			+ "").repeat(2);
+		holdFontRatio = 16.0;
+		holdShakeRatio = 0;
 		break;
 	}
 	}
-
-	mWord.style.zIndex = 1;
-	mWord.jimColor = "#FFFFFF";
-	mWord.textShadowColor = "#000000";
-	mWord.jimOpacity = 0.5;
-	WordPosition();
+	
+	WordSet(holdHTML, holdShakeRatio, 1, holdFontRatio, "#FFFFFF", "#000000", 0.5);
+	// WordSet(pInnerHTLML, pShakeRatio, pZIndex, pFontRatio, pJimColor, pTextShadowColor, pJimOpacity = 1)
 }
 
 function WordUpdateGrow()
 {
-	mGrowWordTileTotal += 0.1;
+	const limit = 40.0;
+	mGrowWordTileTotal += 0.03;
+	if (mGrowWordTileTotal > limit) { mGrowWordTileTotal = limit; }
+	mWord.fontRatio = 0.25 * (1.0 + mGrowWordTileTotal * 0.12);
+	mWord.jimColor = document.body.style.backgroundColor;
+	mWord.textShadowColor = "#FFFFFF";	
+	WordPosition();
+}
 
-	mWord.innerHTML = mGrowCount + "";
+function WordUpdateGrowFinal()
+{
+	const limit = 40.0;
+	mGrowWordTileTotal += 0.1;
+	// if (mGrowWordTileTotal > limit) { mGrowWordTileTotal = limit; }
+
+	if (mGrowCount != mWord.innerHTML) { mWord.innerHTML = mGrowCount + ""; }
 	mWord.shakeRatio = 0;
 	mWord.style.zIndex = 1;
 	mWord.fontRatio = 0.25 * (1.0 + mGrowWordTileTotal * 0.12);
 
-	mWord.jimColor = "#000000";
-	mWord.textShadowColor = "#FFFFFF";
-	
-	/*
-	if ((mGrowWordTileTotal % 2) == 0)
-	{
-		mWord.jimColor = "#FF00FF";
-		mWord.textShadowColor = "#FFFFFF";
-	}
-	else
-	{
-		mWord.jimColor = "#FFFFFF";
-		mWord.textShadowColor = "#FF00FF";
-	}
-	*/
-	let hold = mGrowWordTileTotal * 0.005; if (hold > 1.0) { hold = 1.0; }
-	// var hold = 0.25 + mGrowWordTileTotal * 0.025; if (hold > 1.0) { hold = 1.0; }
-	mWord.jimOpacity = hold;
+	mWord.jimColor = document.body.style.backgroundColor;
+	mWord.textShadowColor = "#FFFFFF";	
 	WordPosition();
 }
 
@@ -5685,7 +5734,6 @@ function WordUpdateBoss()
 				mWord.fontRatio = 1;
 				mWord.jimColor = "#FFFFFF";
 				mWord.textShadowColor = "#000000";
-				mWord.jimOpacity = 0.25;
 				WordPosition();
 				mBossWordCounter = 0;					
 			}			
@@ -5714,7 +5762,6 @@ function WordUpdateBoss()
 				mWord.fontRatio = 1;
 				mWord.jimColor = "#FFFFFF";
 				mWord.textShadowColor = "#000000";
-				mWord.jimOpacity = 0.25;
 				WordPosition();
 			}
 		}
@@ -5742,7 +5789,6 @@ function WordUpdateBoss()
 				mWord.fontRatio = 1;
 				mWord.jimColor = "#FFFFFF";
 				mWord.textShadowColor = "#000000";
-				mWord.jimOpacity = 0.25;
 				WordPosition();
 			}
 		}			
@@ -5799,113 +5845,107 @@ function WordUpdateUseTheForce()
 			mWord.fontRatio = 1;
 			mWord.jimColor = "#FFFFFF";
 			mWord.textShadowColor = "#000000";
-			mWord.jimOpacity = 0.25;
 			WordPosition();
 		}
 	}
 }
 
+let mWeekdayGrowFlag = true;
 function WordUpdateBackgroundWeekday()
 {
-	if ((mGrowCount > 0) && (mState != 1))
+	if (mGrowCount > 0)
 	{
-		WordUpdateGrow();
+		WordUpdateGrowFinal();
 	}
-
-	else if (mWord.tileTotal != mTileTotal)
+	else
 	{
-		mWord.tileTotal = mTileTotal;
+		if (mWord.tileTotal != mTileTotal)
+		{
+			mWord.tileTotal = mTileTotal;
 
-		if (mState == 1)
-		{
-			mWord.innerHTML = "";
-			mWord.shakeRatio = 0;
-			mWord.style.zIndex = 1;
-			mWord.fontRatio = 1;
-			mWord.jimColor = "#FFFFFF";
-			mWord.textShadowColor = "#00FFFF";
-			mWord.jimOpacity = 1;
-			WordPosition();
-		}
-		
-		else if (mUseTheForceState > 0)
-		{
-			WordUpdateUseTheForce();
-		}	
-
-		else if ((mWeekdayLevelsRemaining == 1) && (mTileTotal <= 25) )
-		{
-			if (mTileTotal == 2)
+			if (mState == 1)
 			{
-				switch (mWorldDayOfWeek)
+				mWeekdayGrowFlag = false;		
+				// WordSet(pInnerHTLML, pShakeRatio, pZIndex, pFontRatio, pJimColor, pTextShadowColor, pJimOpacity = 1)				
+				WordSet("", 0, 1, 1, "#FFFFFF", "#00FFFF");
+			}
+			
+			else if (mUseTheForceState > 0)
+			{
+				mWeekdayGrowFlag = false;
+				WordUpdateUseTheForce();
+			}	
+
+			else if ((mWeekdayLevelsRemaining == 1) && (mTileTotal <= 25) )
+			{
+				mWeekdayGrowFlag = false;
+				if (mTileTotal == 2)
 				{
-					case 0: { mWord.innerHTML = "HAPPY<BR>HOLLOWS<BR>SUNDAY<BR>LOVING"; break; }
-					case 1: { mWord.innerHTML = "HAPPY<BR>HOLLOWS<BR>KILLING<BR>MONDAYS"; break; }
-					case 2: { mWord.innerHTML = "HAPPY<BR>HOLLOWS<BR>TOTALLY<BR>TUESDAY"; break; }
-					case 3: { mWord.innerHTML = "HAPPY<BR>HOLLOWS<BR>WEDNESDAY<BR>HUMPING"; break; }
-					case 4: { mWord.innerHTML = "HAPPY<BR>HOLLOWS<BR>THURTTING<BR>THURSDAYS"; break; }
-					case 5: { mWord.innerHTML = "HAPPY<BR>HOLLOWS<BR>FREAKING<BR>FRIDAYS"; break; }
-					case 6: { mWord.innerHTML = "HAPPY<BR>HOLLOWS<BR>SIZZLING<BR>SATURDAY"; break; }
+					let holdHTML = "";
+					switch (mWorldDayOfWeek)
+					{
+						case 0: { holdHTML = "HAPPY<BR>HOLLOWS<BR>SUNDAY<BR>LOVING"; break; }
+						case 1: { holdHTML = "HAPPY<BR>HOLLOWS<BR>KILLING<BR>MONDAYS"; break; }
+						case 2: { holdHTML = "HAPPY<BR>HOLLOWS<BR>TOTALLY<BR>TUESDAY"; break; }
+						case 3: { holdHTML = "HAPPY<BR>HOLLOWS<BR>WEDNESDAY<BR>HUMPING"; break; }
+						case 4: { holdHTML = "HAPPY<BR>HOLLOWS<BR>THURTTING<BR>THURSDAYS"; break; }
+						case 5: { holdHTML = "HAPPY<BR>HOLLOWS<BR>FREAKING<BR>FRIDAYS"; break; }
+						case 6: { holdHTML = "HAPPY<BR>HOLLOWS<BR>SIZZLING<BR>SATURDAY"; break; }
+					}
+					WordSet(holdHTML, 0.01, 1, 1, "#FFFFFF", "#00FFFF");
 				}
-				mWord.shakeRatio = 0.01;
-				mWord.style.zIndex = 1;
-				mWord.fontRatio = 1;
-				mWord.jimColor = "#FFFFFF";
-				mWord.textShadowColor = "#00FFFF";
-				mWord.jimOpacity = 1;
-				WordPosition();
+				else
+				{
+					let innerHTML = "";
+					if (mWorldDayOfWeek == 0)
+					{
+						innerHTML = "Artist: The Happy Hollows<BR>Song: Silver<BR>Album: Spells<BR>2009";
+					} 
+					else if ( (mWorldDayOfWeek == 1) || (mWorldDayOfWeek == 4) )
+					{
+						innerHTML = "Artist: The Happy Hollows<BR>Song: Concordia<BR>Album: Concordia<BR>2017";
+					} 
+					else if ( (mWorldDayOfWeek == 2) || (mWorldDayOfWeek == 5) )
+					{
+						innerHTML = "Artist: The Happy Hollows<BR>Song: Chop Lifter<BR>Album: Amethyst<BR>2013";
+					}
+					else if ( (mWorldDayOfWeek == 3) || (mWorldDayOfWeek == 6) )
+					{
+						innerHTML = "Artist: The Happy Hollows<BR>Song: Endless<BR>Album: Amethyst<BR>2013";
+					}
+
+					if (mWord.innerHTML != innerHTML) { WordSet(innerHTML, 0.0, 1, 1, "#FFFFFF", "#000000"); }
+				}			
 			}
 			else
 			{
-				let innerHTML = "";
-				if (mWorldDayOfWeek == 0)
-				{
-					innerHTML = "Artist: The Happy Hollows<BR>Song: Silver<BR>Album: Spells<BR>2009";
-				} 
-				else if ( (mWorldDayOfWeek == 1) || (mWorldDayOfWeek == 4) )
-				{
-					innerHTML = "Artist: The Happy Hollows<BR>Song: Concordia<BR>Album: Concordia<BR>2017";
-				} 
-				else if ( (mWorldDayOfWeek == 2) || (mWorldDayOfWeek == 5) )
-				{
-					innerHTML = "Artist: The Happy Hollows<BR>Song: Chop Lifter<BR>Album: Amethyst<BR>2013";
-				}
-				else if ( (mWorldDayOfWeek == 3) || (mWorldDayOfWeek == 6) )
-				{
-					innerHTML = "Artist: The Happy Hollows<BR>Song: Endless<BR>Album: Amethyst<BR>2013";
-				}
-
-				if (mWord.innerHTML != innerHTML)
-				{
-					mWord.innerHTML = innerHTML;
-					mWord.shakeRatio = 0.0;
-					mWord.style.zIndex = 1;
-					mWord.fontRatio = 1;
-					mWord.jimColor = "#FFFFFF";
-					mWord.textShadowColor = "#000000";
-					mWord.jimOpacity = 0.25;
-					WordPosition();
-				}
-			}			
+				// The Growing Number
+				mWeekdayGrowFlag = true;
+				WordSet((mTileTotal - 1) + "", 0.0, 1, 1, "#000000", "#FFFFFF");
+				const limit = 40.0;
+				if ( (mTileTotal < 11) || (mGrowWordTileTotal > limit * 0.9) ) { mGrowWordTileTotal = limit * 0.75; }
+			}
 		}
 		
-		else if (mTileTotal <= 4)
+		if (mWeekdayGrowFlag)
 		{
-			WordUpdateCountdown(mTileTotal - 1)
+			WordUpdateGrow();
 		}
-		
-		else
-		{
-			mWord.innerHTML = (mTileTotal - 1) + "";
-			mWord.shakeRatio = 0.0;
-			mWord.style.zIndex = 1;
-			mWord.fontRatio = 1; 
-			mWord.jimColor = "#FFFFFF";
-			mWord.textShadowColor = "#000000";
-			mWord.jimOpacity = 0.25;
-			WordPosition();				
-		}	
 	}
+}
+
+
+function WordSet(pInnerHTLML, pShakeRatio, pZIndex, pFontRatio, pJimColor, pTextShadowColor, pJimOpacity = 1)
+{
+	mWord.innerHTML = pInnerHTLML;
+	mWord.shakeRatio = pShakeRatio;   // 0.0;
+	mWord.style.zIndex = pZIndex;
+	mWord.fontRatio = pFontRatio;   // 1;
+	mWord.jimColor = pJimColor;   // "#FFFFFF";   // no alpha
+	mWord.textShadowColor = pTextShadowColor;   // "#000000";
+	mWord.jimOpacity = pJimOpacity;
+	documentBodyStyleBackgroundColor = "";
+	WordPosition();
 }
 
 function WordUpdateBackground()
@@ -5919,7 +5959,6 @@ function WordUpdateBackground()
 		mWord.fontRatio = 1; 
 		mWord.jimColor = "#FFFFFF";
 		mWord.textShadowColor = "#000000";
-		mWord.jimOpacity = 0.25;
 		WordPosition();				
 	}
 	*/
@@ -5929,7 +5968,8 @@ function WordUpdateBackground()
 		if (mWorldResetUpdateCount >= 50)
 		{
 			var s = "Creating " + (mLevelGenerateCount + 1);
-			s += "<BR>" + Object.keys(WorldType)[mWorldType]; 
+			s += "<BR>" + mWorldType + ":" + Object.keys(WorldType)[mWorldType];
+			if (mWorldExtreme) { s += "<BR>Extreme"; }
 	
 			var seconds = parseInt((Date.now() - mSolveStart) / 1000);
 			var minutes = parseInt(seconds / 60);
@@ -5953,33 +5993,14 @@ function WordUpdateBackground()
 				s += "<BR>&nbsp;";
 			}
 			
-			mWord.innerHTML = s;
-
-			mWord.shakeRatio = 0.0;
-			mWord.style.zIndex = 4;
-			mWord.fontRatio = 0.8;
-			mWord.jimColor = "#FFFFFF"; // "#000000";
-			mWord.textShadowColor = "#000000";
-			mWord.jimOpacity = 1;   // otherwise tiles underneath show		
-			
-			WordPosition();
+			WordSet(s, 0, 4, 0.8, "#FFFFFF", "#000000");
 		}
 	}
 	
 	// <FAIL>
 	else if ( (mState == 1) || (mPlayer.xyIndex == mRestart.xyIndexRemember) )
 	{
-		if (mWord.innerHTML != "")
-		{
-			mWord.innerHTML = "";
-			mWord.shakeRatio = 0.0;
-			mWord.style.zIndex = 1;
-			mWord.fontRatio = 1;
-			mWord.jimColor = "#FFFFFF";
-			mWord.textShadowColor = "#000000";
-			mWord.jimOpacity = 0.25;
-			WordPosition();
-		}
+		if (mWord.innerHTML != "") { WordSet("", 0, 1, 1, "#FFFFFF", "#000000"); }
 	}
 	// </FAIL>
 	
@@ -5989,32 +6010,24 @@ function WordUpdateBackground()
 		var holdTurnTotal = mSolvedPlayfieldTurn[0]; if (mTalkStates[TalkType.turns] == 2) { holdTurnTotal = mSolvedPlayfieldTurn[1]; }
 		if (mPlayer.turns == holdTurnTotal)
 		{
-			mWord.innerHTML = "<DIV Style='font-size:50%;line-height:100%;textShadow50;'>" + holdTurnTotal + "</DIV>";
-			mWord.shakeRatio = 0.01;
-			mWord.style.zIndex = 1;
-			mWord.fontRatio = 1;
-			mWord.jimColor = "#FFFF00";
-			mWord.textShadowColor = "#FFFFFF";
-			mWord.jimOpacity = 1;
-			WordPosition();
+			WordSet(
+				"<DIV Style='font-size:50%;line-height:100%;textShadow50;'>" + holdTurnTotal + "</DIV>"
+				, 0.01, 1, 1, "#FFFF00", "#FFFFFF"
+			);
 		}
 		else
 		{
+			let holdHTML = "";
 			if (mTalkStates[TalkType.turns] == 2)
 			{
-				mWord.innerHTML = "<DIV Style='font-size:50%;line-height:100%;textShadow50;'>MOST<BR>" + mPlayer.turns + " / " + mSolvedPlayfieldTurn[1] + "</DIV>";
+				holdHTML = "<DIV Style='font-size:50%;line-height:100%;textShadow50;'>MOST<BR>" + mPlayer.turns + " / " + mSolvedPlayfieldTurn[1] + "</DIV>";
 			}
 			else
 			{
-				mWord.innerHTML = "<DIV Style='font-size:50%;line-height:100%;textShadow50;'>LEAST<BR>" + mPlayer.turns + " / " + mSolvedPlayfieldTurn[0] + "</DIV>";
+				holdHTML = "<DIV Style='font-size:50%;line-height:100%;textShadow50;'>LEAST<BR>" + mPlayer.turns + " / " + mSolvedPlayfieldTurn[0] + "</DIV>";
 			}
-			mWord.shakeRatio = 0.0;
-			mWord.style.zIndex = 1;
-			mWord.fontRatio = 1;
-			mWord.jimColor = "#FFFFFF";
-			mWord.textShadowColor = "#00FFFF";
-			mWord.jimOpacity = 1;
-			WordPosition();
+
+			WordSet(holdHTML, 0, 1, 1, "#FFFFFF", "#00FFFF");
 		}
 	}
 	// </TURNS>
@@ -6028,7 +6041,8 @@ function WordUpdateBackground()
 	
 	else if ((mGrowCount > 0) && (mState != 1))
 	{
-		WordUpdateGrow();
+		WordUpdateGrowFinal();
+		// WordUpdateGrow();
 	}
 	
 	else if (mTileTotal != mWord.tileTotal)
@@ -6041,22 +6055,18 @@ function WordUpdateBackground()
 			&& ((mLevelType == LevelType.Regular) || (mLevelType == LevelType.Tricky))
 		)
 		{
+			let holdHTML = "";
+			let shakeRatio = 0;
 			if (mTileTotal <= 2)
 			{
-				mWord.innerHTML = "IT'S A<BR>GOODIE";
-				mWord.shakeRatio = 0.05;
+				holdHTML = "IT'S A<BR>GOODIE";
+				shakeRatio = 0.05;
 			}
 			else
 			{
-				mWord.innerHTML = "FRANK'S<BR>STORY";
-				mWord.shakeRatio = 0.0;
+				holdHTML = "FRANK'S<BR>STORY";
 			}
-			mWord.style.zIndex = 1;
-			mWord.fontRatio = 1;
-			mWord.jimColor = "#FFFFFF";
-			mWord.textShadowColor = "#000000";
-			mWord.jimOpacity = 0.25;
-			WordPosition();						
+			WordSet(holdHTML, shakeRatio, 1, 1, "#FFFFFF", "#000000", 0.5);
 		}
 
 		// <BONUS> BONUD
@@ -6064,84 +6074,58 @@ function WordUpdateBackground()
 		{
 			if (mTileTotal <= 2)
 			{
+				let holdHTML = "";
 				switch (mLevelType)
 				{
-					case LevelType.Bonus: { mWord.innerHTML = "HAPPY<BR>HOLLOWS<BR>4EVAH"; break; }
-					case LevelType.Boss: { mWord.innerHTML = "HAPPY<BR>HOLLOWS<BR>IS BOSS"; break; }
-					case LevelType.MileStone: { mWord.innerHTML = "HAPPY<BR>HOLLOWS<BR>ARE LEGENDS"; break; }
-					case LevelType.OneHundred: { mWord.innerHTML = "HAPPY<BR>FREAKING<BR>HOLLOWS"; break; }
+					case LevelType.Bonus: { holdHTML = "HAPPY<BR>HOLLOWS<BR>4EVAH"; break; }
+					case LevelType.Boss: { holdHTML = "HAPPY<BR>HOLLOWS<BR>IS BOSS"; break; }
+					case LevelType.MileStone: { holdHTML = "HAPPY<BR>HOLLOWS<BR>ARE LEGENDS"; break; }
+					case LevelType.OneHundred: { holdHTML = "HAPPY<BR>FREAKING<BR>HOLLOWS"; break; }
 				}
-				mWord.shakeRatio = 0.01;
-				mWord.style.zIndex = 1;
-				mWord.fontRatio = 1;
-				mWord.jimColor = "#FFFFFF";
-				mWord.textShadowColor = "#00FFFF";
-				mWord.jimOpacity = 1;
-				WordPosition();
+				WordSet(holdHTML, 0.01, 1, 1, "#FFFFFF", "#00FFFF");
 			}
 			else if (mTileTotal <= 25)
 			{
-				let innerHTML = "";
+				let holdHTML = "";
 				switch (mLevelType)
 				{
-					case LevelType.Bonus: { innerHTML = "Artist: The Happy Hollows<BR>Song: Endless<BR>Album: Amethyst<BR>2013"; break; }
-					case LevelType.Boss: { innerHTML = "Artist: The Happy Hollows<BR>Song: Chop Lifter<BR>Album: Amethyst<BR>2013"; break; }
-					case LevelType.MileStone: { innerHTML = "Artist: The Happy Hollows<BR>Song: Concordia<BR>Album: Concordia<BR>2017"; break; }
-					case LevelType.OneHundred: { innerHTML = "Artist: The Happy Hollows<BR>Song: Silver<BR>Album: Spells<BR>2009"; break; }
+					case LevelType.Bonus: { holdHTML = "Artist: The Happy Hollows<BR>Song: Endless<BR>Album: Amethyst<BR>2013"; break; }
+					case LevelType.Boss: { holdHTML = "Artist: The Happy Hollows<BR>Song: Chop Lifter<BR>Album: Amethyst<BR>2013"; break; }
+					case LevelType.MileStone: { holdHTML = "Artist: The Happy Hollows<BR>Song: Concordia<BR>Album: Concordia<BR>2017"; break; }
+					case LevelType.OneHundred: { holdHTML = "Artist: The Happy Hollows<BR>Song: Silver<BR>Album: Spells<BR>2009"; break; }
 				}
 				
-				if (mWord.innerHTML != innerHTML)
+				if (mWord.innerHTML != holdHTML)
 				{
-					mWord.innerHTML = innerHTML;
+					mWord.innerHTML = holdHTML;
 					if (mLevelType == LevelType.OneHundred)
 					{
-						mWord.shakeRatio = 0.0;
-						mWord.style.zIndex = 1;
-						mWord.fontRatio = 1;
-						mWord.jimColor = "#FFFFFF";
-						mWord.textShadowColor = "#00FFFF";
-						mWord.jimOpacity = 1;
+						WordSet(holdHTML, 0, 1, 1, "#FFFFFF", "#00FFFF");
 					}
 					else
 					{
-						mWord.shakeRatio = 0.0;
-						mWord.style.zIndex = 1;
-						mWord.fontRatio = 1;
-						mWord.jimColor = "#FFFFFF";
-						mWord.textShadowColor = "#000000";
-						mWord.jimOpacity = 0.25;
+						WordSet(holdHTML, 0, 1, 1, "#FFFFFF", "#000000");
 					}
-					WordPosition();
 				}
 			}
 			else
 			{
+				let holdHTML = "";
 				switch (mLevelType)
 				{
-					case LevelType.Bonus: { mWord.innerHTML = "BON<BR>US"; break; }
-					case LevelType.Boss: { mWord.innerHTML = "BO<BR>SS"; break; }
-					case LevelType.MileStone: { mWord.innerHTML = "MILE<BR>STONE"; break; }
-					case LevelType.OneHundred: { mWord.innerHTML = total.toLocaleString(); break; }
+					case LevelType.Bonus: { holdHTML = "BON<BR>US"; break; }
+					case LevelType.Boss: { holdHTML = "BO<BR>SS"; break; }
+					case LevelType.MileStone: { holdHTML = "MILE<BR>STONE"; break; }
+					case LevelType.OneHundred: { holdHTML = total.toLocaleString(); break; }
 				}					
 				if (mLevelType == LevelType.OneHundred)
 				{
-					mWord.shakeRatio = 0.0;
-					mWord.style.zIndex = 1;
-					mWord.fontRatio = 1;
-					mWord.jimColor = "#FFFFFF";
-					mWord.textShadowColor = "#00FF00";
-					mWord.jimOpacity = 1;
+					WordSet(holdHTML, 0, 1, 1, "#FFFFFF", "#00FF00");
 				}
 				else
 				{
-					mWord.shakeRatio = 0.0;
-					mWord.style.zIndex = 1;
-					mWord.fontRatio = 1;
-					mWord.jimColor = "#FFFFFF";
-					mWord.textShadowColor = "#000000";
-					mWord.jimOpacity = 0.25;
+					WordSet(holdHTML, 0, 1, 1, "#FFFFFF", "#000000");
 				}
-				WordPosition();
 			}
 		}
 		// </BONUS> BONUD
@@ -6153,72 +6137,30 @@ function WordUpdateBackground()
 			{
 				if (mTileTotal <= 2)
 				{
-					mWord.innerHTML = "I REGRET<BR>NOTHING";
-					mWord.shakeRatio = 0.005;
-					mWord.style.zIndex = 1;
-					mWord.fontRatio = 1;
-					mWord.jimColor = "#FFFFFF";
-					mWord.textShadowColor = "#FF0000";
-					mWord.jimOpacity = 1;
-					WordPosition();
+					WordSet("I REGRET<BR>NOTHING", 0.05, 1, 1, "#FFFFFF", "#FF0000");
 				}
 				else if (mTileTotal <= parseInt(mTileTotalRemember * 0.4))
 				{
-					mWord.innerHTML = "CONFESSION<BR>it was me";;
-					mWord.shakeRatio = 0.0;
-					mWord.style.zIndex = 1;
-					mWord.fontRatio = 1;
-					mWord.jimColor = "#FFFF00";
-					mWord.textShadowColor = "#FF0000";
-					mWord.jimOpacity = 0.25;
-					WordPosition();
+					WordSet("CONFESSION<BR>it was me", 0, 1, 1, "#FFFF00", "#FF0000");
 				}
 				else
 				{
-					mWord.innerHTML = "URINE";
-					mWord.shakeRatio = 0.0;
-					mWord.style.zIndex = 1;
-					mWord.fontRatio = 1;
-					mWord.jimColor = "#FFFF00";
-					mWord.textShadowColor = "#FF0000";
-					mWord.jimOpacity = 0.25;
-					WordPosition();
+					WordSet("URINE", 0, 1, 1, "#FFFF00", "#FF0000");
 				}
 			}
 			else if (mUrineState < 0)
 			{
 				if (mTileTotal <= 2)
 				{
-					mWord.innerHTML = "SEE?";
-					mWord.shakeRatio = 0.01;
-					mWord.style.zIndex = 1;
-					mWord.fontRatio = 1.4;
-					mWord.jimColor = "#FFFF00";
-					mWord.textShadowColor = "#00FF00";
-					mWord.jimOpacity = 1;			
-					WordPosition();						
+					WordSet("SEE?", 0.01, 1, 1.4, "#FFFF00", "#00FF00");
 				}
 				else if (mTileTotal <= parseInt(mTileTotalRemember * 0.4))
 				{
-					mWord.innerHTML = "SEE!";
-					mWord.shakeRatio = 0.0;
-					mWord.style.zIndex = 1;
-					mWord.fontRatio = 1;
-					mWord.jimColor = "#00FF00";
-					mWord.textShadowColor = "#FFFF00";
-					mWord.jimOpacity = 1;			
-					WordPosition();						
+					WordSet("SEE!", 0, 1, 1, "#00FF00", "#FFFF00");
 				}
 				else
 				{
-					mWord.innerHTML = "YOU'LL<BR>SEE.";
-					mWord.shakeRatio = 0.0;
-					mWord.style.zIndex = 1;
-					mWord.fontRatio = 1;
-					mWord.jimColor = "#FFFF00";
-					mWord.textShadowColor = "#FF0000";
-					mWord.jimOpacity = 0.25;
-					WordPosition();
+					WordSet("YOU'LL<BR>SEE.", 0, 1, 1, "#FFFF00", "#FF0000");
 				}
 			}
 		}
@@ -6238,20 +6180,12 @@ function WordUpdateBackground()
 		
 		else
 		{
-			mWord.innerHTML = (mTileTotal - 1) + "";
-			mWord.shakeRatio = 0.0;
-			mWord.style.zIndex = 1;
-			mWord.fontRatio = 1; 
-			mWord.jimColor = "#FFFFFF";
-			mWord.textShadowColor = "#000000";
-			mWord.jimOpacity = 0.25;
-			WordPosition();				
+			WordSet((mTileTotal - 1) + "", 0, 1, 1, "#FFFFFF", "#000000", 0.1);
 		}	
 	}
 	
 	// SVG Background Idea
 	// mWord.jimColor = document.body.style.backgroundColor;
-	// mWord.jimOpacity = 1.0;
 }
 
 var mBossWordCounter = 0;
@@ -6289,8 +6223,6 @@ function WordUpdate()
 	else
 	// <FOREGROUND/SHRINKING>
 	{
-		mWord.jimOpacity = 1;
-		mWord.jimOpacityFinal = mWord.jimOpacity;		
 		mWord.jimColor = "#FFFF60";
 		mWord.textShadowColor = "#000000";
 			
@@ -6338,32 +6270,36 @@ function WordUpdate()
 	if ( (mWord.screenWidth != w) || (mWord.screenHeight != h) ) { WordPosition(); }
 
 
-	if (mWord.jimOpacity == 1.0)
+	if (mWorldMode > 0)
 	{
-		if (mWord.style.color != mWord.jimColor)
-		{
-			mWord.style.color = mWord.jimColor;
-			mWord.jimOpacityFinal = mWord.jimOpacity;
-		}
+		if (mWord.style.color != mWord.jimColor) { mWord.style.color = mWord.jimColor; }
 	}
 	else
 	{
-		if (
-			(document.body.style.backgroundColor != documentBodyStyleBackgroundColor)
-			|| (mWord.jimOpacityFinal != mWord.jimOpacity)
-		)
+		if (mWord.jimOpacity == 1)
 		{
-			var holdOld = hexToRgb(StyleRGBToHex(document.body.style.backgroundColor));
-			var holdNew = hexToRgb(mWord.jimColor);
+			mWord.style.color = mWord.jimColor;
+		}
+		else
+		{
+			// Fake Opacity (for performance)
+			if (
+				(document.body.style.backgroundColor != documentBodyStyleBackgroundColor)
+				|| (mWord.jimOpacityFinal != mWord.jimOpacity)
+			)
+			{
+				var holdOld = hexToRgb(StyleRGBToHex(document.body.style.backgroundColor));
+				var holdNew = hexToRgb(mWord.jimColor);
+				
+				holdOld[0] = holdOld[0] + ((holdNew[0] - holdOld[0]) * mWord.jimOpacity);
+				holdOld[1] = holdOld[1] + ((holdNew[1] - holdOld[1]) * mWord.jimOpacity);
+				holdOld[2] = holdOld[2] + ((holdNew[2] - holdOld[2]) * mWord.jimOpacity);
 			
-			holdOld[0] = holdOld[0] + ((holdNew[0] - holdOld[0]) * mWord.jimOpacity);
-			holdOld[1] = holdOld[1] + ((holdNew[1] - holdOld[1]) * mWord.jimOpacity);
-			holdOld[2] = holdOld[2] + ((holdNew[2] - holdOld[2]) * mWord.jimOpacity);
-		
-			mWord.style.color = RGBToHex(holdOld[0], holdOld[1], holdOld[2]);
+				mWord.style.color = RGBToHex(holdOld[0], holdOld[1], holdOld[2]);
 
-			documentBodyStyleBackgroundColor = document.body.style.backgroundColor;
-			mWord.jimOpacityFinal = mWord.jimOpacity;
+				documentBodyStyleBackgroundColor = document.body.style.backgroundColor;
+				mWord.jimOpacityFinal = mWord.jimOpacity;
+			}	
 		}
 	}
 }
@@ -7999,24 +7935,12 @@ function SolveUpdate(pMilliseconds)
 						turnsHold++;
 					}
 					
-					// mSolveCrazyPlayFields[mHistoryPushIndex] = mSolveCrazyPlayFields[historyCurrentIndex].slice(0, mTileXYCount);
 					for (var index = 0; index < mTileXYCount; index++) { mSolveCrazyPlayFields[mHistoryPushIndex][index] = mSolveCrazyPlayFields[historyCurrentIndex][index]; };
 					mHistoryxyIndexes[mHistoryPushIndex]= xyIndex - 1;
 					mHistoryCounts[mHistoryPushIndex] = count + 1;
 					mHistoryTurns[mHistoryPushIndex] = turnsHold;
 					mHistoryPushIndex = (mHistoryPushIndex + 1) % mSolveCrazyPlayFields.length;
-					if (mHistoryPushIndex == mHistoryPopIndex)
-					{
-						if ((mSolveUpdateCount % 2) == 0)
-						{
-							mHistoryPushIndex--; if (mHistoryPushIndex < 0) { mHistoryPushIndex += mSolveCrazyPlayFields.length; }
-						}
-						else
-						{
-							mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length;
-						}
-						mStatePushPopped = true;
-					}
+					if (mHistoryPushIndex == mHistoryPopIndex) { mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length; mStatePushPopped = true; }
 				}		
 		
 				// RIGHT -2
@@ -8032,24 +7956,12 @@ function SolveUpdate(pMilliseconds)
 						turnsHold++;
 					}
 
-					// mSolveCrazyPlayFields[mHistoryPushIndex] = mSolveCrazyPlayFields[historyCurrentIndex].slice(0, mTileXYCount);
 					for (var index = 0; index < mTileXYCount; index++) { mSolveCrazyPlayFields[mHistoryPushIndex][index] = mSolveCrazyPlayFields[historyCurrentIndex][index]; };
 					mHistoryxyIndexes[mHistoryPushIndex]= xyIndex + 1;
 					mHistoryCounts[mHistoryPushIndex] = count + 1;
 					mHistoryTurns[mHistoryPushIndex] = turnsHold;
 					mHistoryPushIndex = (mHistoryPushIndex + 1) % mSolveCrazyPlayFields.length;
-					if (mHistoryPushIndex == mHistoryPopIndex)
-					{
-						if ((mSolveUpdateCount % 2) == 0)
-						{
-							mHistoryPushIndex--; if (mHistoryPushIndex < 0) { mHistoryPushIndex += mSolveCrazyPlayFields.length; }
-						}
-						else
-						{
-							mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length;
-						}
-						mStatePushPopped = true;
-					}
+					if (mHistoryPushIndex == mHistoryPopIndex) { mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length; mStatePushPopped = true; }
 				}
 				
 				// UP -3
@@ -8071,18 +7983,7 @@ function SolveUpdate(pMilliseconds)
 					mHistoryCounts[mHistoryPushIndex] = count + 1;
 					mHistoryTurns[mHistoryPushIndex] = turnsHold;					
 					mHistoryPushIndex = (mHistoryPushIndex + 1) % mSolveCrazyPlayFields.length;
-					if (mHistoryPushIndex == mHistoryPopIndex)
-					{
-						if ((mSolveUpdateCount % 2) == 0)
-						{
-							mHistoryPushIndex--; if (mHistoryPushIndex < 0) { mHistoryPushIndex += mSolveCrazyPlayFields.length; }
-						}
-						else
-						{
-							mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length;
-						}
-						mStatePushPopped = true;
-					}
+					if (mHistoryPushIndex == mHistoryPopIndex) { mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length; mStatePushPopped = true; }
 				}			
 		
 				// DOWN -4
@@ -8104,18 +8005,7 @@ function SolveUpdate(pMilliseconds)
 					mHistoryCounts[mHistoryPushIndex] = count + 1;
 					mHistoryTurns[mHistoryPushIndex] = turnsHold;					
 					mHistoryPushIndex = (mHistoryPushIndex + 1) % mSolveCrazyPlayFields.length;
-					if (mHistoryPushIndex == mHistoryPopIndex)
-					{
-						if ((mSolveUpdateCount % 2) == 0)
-						{
-							mHistoryPushIndex--; if (mHistoryPushIndex < 0) { mHistoryPushIndex += mSolveCrazyPlayFields.length; }
-						}
-						else
-						{
-							mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length;
-						}
-						mStatePushPopped = true;
-					}
+					if (mHistoryPushIndex == mHistoryPopIndex) { mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length; mStatePushPopped = true; }
 				}
 				
 				// if we get here, and no paths were taken, we wound up at a dead end/stuck (a path which ended but did NOT get rid of all tiles).
@@ -8149,225 +8039,6 @@ function SolveUpdate(pMilliseconds)
 	return newState;
 }
 
-
-function SolveUpdateOLD(pMilliseconds)
-{
-	// Determine whether the playfield (given where the player is at) can be solved
-	// fake "reentrant", fake "mutithreading" - meaning it doesn't do the entire thing but just a piece
-	// Returns 3 things: 0 - still working (mSolutions exists)  1 - fail (could be 100% sure or just unable to finnish)   2 - there's ONE path (might be more)
-	console.assert(mState == 0, "SolveUpdate() Error: Called BUT mState != 0 '" + mState + "'");
-	let newState = 0;	
-	let milliseconds = Date.now();
-
-	// <INITIALIZE HEAVY CHECK>
-	// copy first playfield as the root of the recursive array
-	if (mSolveUpdateCount == 1)
-	{
-		mHistoryPopIndex = 0; mHistoryPushIndex = 0;
-		// mSolveCrazyPlayFields[mHistoryPushIndex] = mPlayField.slice(0, mTileXYCount);
-		console.assert(mPlayField[mPlayer.top * mTileXCount + mPlayer.left] == 1, "SolveUpdateStart Error: mPlayField[mPlayer.top * mTileXCount + mPlayer.left] == 0! 'Root' Tile underneath player is DEAD/0! '" + mPlayer.left + "x" + mPlayer.top + "'");
-		for (var index = 0; index < mTileXYCount; index++) { mSolveCrazyPlayFields[mHistoryPushIndex][index] = mPlayField[index]; };
-		mHistoryxyIndexes[mHistoryPushIndex] = mPlayer.top * mTileXCount + mPlayer.left;
-		mHistoryCounts[mHistoryPushIndex] = 0;
-		mHistoryTurns[mHistoryPushIndex] = 0;
-		mHistoryPushIndex = (mHistoryPushIndex + 1) % mSolveCrazyPlayFields.length;
-	}
-	// </INITIALIZE HEAVY CHECK>
-	
-	// <HEAVY CHECK>
-	var historyCurrentIndex = -1;
-	var xyIndex = 0, count = 0, turns = 0;
-	var turnsHold = 0;
-	var holdDateNow = Date.now() + 500;
-	while ((newState == 0) && (Date.now() - milliseconds < pMilliseconds))
-	{
-		historyCurrentIndex = mHistoryPopIndex; // remember the history element we're processing
-
-		xyIndex = mHistoryxyIndexes[historyCurrentIndex];
-		count = mHistoryCounts[historyCurrentIndex];
-		turns = mHistoryTurns[historyCurrentIndex];
-		console.assert(mSolveCrazyPlayFields[historyCurrentIndex][xyIndex] == 1, "SolveUpdate: mSolveCrazyPlayFields[historyCurrentIndex][xyIndex] is 0! I'm checking dead tile! " + historyCurrentIndex + ":" + mHistoryPopIndex + ":" + mHistoryPushIndex);
-		mPlayFieldDivs[xyIndex].solved++;   // colour
-
-		if (AStarTotal(xyIndex, mSolveCrazyPlayFields[historyCurrentIndex]) == (mTileTotal - count))
-		{
-			// <SOLUTION FOUND>
-			// . might be for a FULL playfield >or< a smaller/larger one, but a solution has been found for THIS playfield
-			// . mTileTotal can be smaller or larger than good playfield 
-			if ((count + 1) == mTileTotal)
-			{	
-				// If we're generating a level, or player started playing the level - update FinalTile, Answers for Pink
-				// If we're using SolveUpdate to determine something else (player moving caluse failure, prove Extras cause failure), do NOT modify these 
-				if ( (mTileTotalRemember == 0) || (mTileTotal == mTileTotalRemember) )
-				{
-					if (mPlayFieldDivs[xyIndex].finalTile == 0)
-					{
-						mPlayFieldDivs[xyIndex].finalTile = 1;   // regardless of Talktype.finishTile, we want to flag all tiles that are final
-						FinishTileAdd(xyIndex, true);
-					}
-				
-					if (turns < mSolvedPlayfieldTurn[0])
-					{
-						// mSolvedPlayfield[0] = mSolveCrazyPlayFields[historyCurrentIndex].slice(0, mTileXYCount);
-						for (var index = 0; index < mTileXYCount; index++) { mSolvedPlayfield[0][index] = mSolveCrazyPlayFields[historyCurrentIndex][index]; }
-						mSolvedPlayfieldTurn[0] = turns;
-						// console.log("000 " + turns);
-					}
-					if (turns > mSolvedPlayfieldTurn[1])
-					{
-						// mSolvedPlayfield[1] = mSolveCrazyPlayFields[historyCurrentIndex].slice(0, mTileXYCount);
-						for (var index = 0; index < mTileXYCount; index++) { mSolvedPlayfield[1][index] = mSolveCrazyPlayFields[historyCurrentIndex][index]; }
-						mSolvedPlayfieldTurn[1] = turns;
-						// console.log("111 " + turns);
-					}
-				}
-				
-				mSolutions++;
-			}
-			// <SOLUTION FOUND>
-
-			// <KEEP LOOKING>
-			else
-			{
-				// LEFT -1
-				if ( ((xyIndex % mTileXCount) > 0) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex - 1] > 0) )
-				{
-					mSolveCrazyPlayFields[historyCurrentIndex][xyIndex] = -1;
-					// feel i could calculate this later once I have valid paths. don't care about turns of failures.
-					turnsHold = turns;
-					if (
-						( ((xyIndex - mTileXCount) >= 0) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex - mTileXCount] == -4) )
-						|| ( (xyIndex + mTileXCount < mTileXYCount) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex + mTileXCount] == -3) )
-					)
-					{
-						turnsHold++;
-					}
-					
-					// mSolveCrazyPlayFields[mHistoryPushIndex] = mSolveCrazyPlayFields[historyCurrentIndex].slice(0, mTileXYCount);
-					for (var index = 0; index < mTileXYCount; index++) { mSolveCrazyPlayFields[mHistoryPushIndex][index] = mSolveCrazyPlayFields[historyCurrentIndex][index]; };
-					mHistoryxyIndexes[mHistoryPushIndex]= xyIndex - 1;
-					mHistoryCounts[mHistoryPushIndex] = count + 1;
-					mHistoryTurns[mHistoryPushIndex] = turnsHold;
-					mHistoryPushIndex = (mHistoryPushIndex + 1) % mSolveCrazyPlayFields.length;
-					if (mHistoryPushIndex == mHistoryPopIndex)
-					{
-						mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length;
-						// if ((mSolveUpdateCount % 2) == 0) { mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length; }
-						mStatePushPopped = true;
-					}
-				}		
-		
-				// RIGHT -2
-				if ( ((xyIndex % mTileXCount) < (mTileXCount - 1)) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex + 1] > 0) )
-				{
-					mSolveCrazyPlayFields[historyCurrentIndex][xyIndex] = -2;
-					turnsHold = turns;
-					if (
-						( ((xyIndex - mTileXCount) >= 0) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex - mTileXCount] == -4) )
-						|| ( (xyIndex + mTileXCount < mTileXYCount) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex + mTileXCount] == -3) )
-					)
-					{
-						turnsHold++;
-					}
-
-					// mSolveCrazyPlayFields[mHistoryPushIndex] = mSolveCrazyPlayFields[historyCurrentIndex].slice(0, mTileXYCount);
-					for (var index = 0; index < mTileXYCount; index++) { mSolveCrazyPlayFields[mHistoryPushIndex][index] = mSolveCrazyPlayFields[historyCurrentIndex][index]; };
-					mHistoryxyIndexes[mHistoryPushIndex]= xyIndex + 1;
-					mHistoryCounts[mHistoryPushIndex] = count + 1;
-					mHistoryTurns[mHistoryPushIndex] = turnsHold;
-					mHistoryPushIndex = (mHistoryPushIndex + 1) % mSolveCrazyPlayFields.length;
-					if (mHistoryPushIndex == mHistoryPopIndex)
-					{
-						mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length;
-						// if ((mSolveUpdateCount % 2) == 0) { mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length; }
-						mStatePushPopped = true;
-					}
-				}
-				
-				// UP -3
-				if ( ((xyIndex - mTileXCount) >= 0) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex - mTileXCount] > 0) )
-				{
-					mSolveCrazyPlayFields[historyCurrentIndex][xyIndex] = -3;
-					turnsHold = turns;
-					if (
-						( ((xyIndex % mTileXCount) > 0) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex - 1] == -2) )   // tile to left points right
-						|| ( ((xyIndex % mTileXCount) < (mTileXCount - 1)) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex + 1] == -1) )   // tile to right points left
-					)
-					{
-						 turnsHold++;
-					}
-
-					// mSolveCrazyPlayFields[mHistoryPushIndex] = mSolveCrazyPlayFields[historyCurrentIndex].slice(0, mTileXYCount);
-					for (var index = 0; index < mTileXYCount; index++) { mSolveCrazyPlayFields[mHistoryPushIndex][index] = mSolveCrazyPlayFields[historyCurrentIndex][index]; };
-					mHistoryxyIndexes[mHistoryPushIndex]= xyIndex - mTileXCount;
-					mHistoryCounts[mHistoryPushIndex] = count + 1;
-					mHistoryTurns[mHistoryPushIndex] = turnsHold;					
-					mHistoryPushIndex = (mHistoryPushIndex + 1) % mSolveCrazyPlayFields.length;
-					if (mHistoryPushIndex == mHistoryPopIndex)
-					{
-						mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length;
-						// if ((mSolveUpdateCount % 2) == 0) { mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length; }
-						mStatePushPopped = true;
-					}
-				}			
-		
-				// DOWN -4
-				if  ( (xyIndex + mTileXCount < mTileXYCount) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex + mTileXCount] > 0) )
-				{
-					mSolveCrazyPlayFields[historyCurrentIndex][xyIndex] = -4;
-					turnsHold = turns;
-					if (
-						( ((xyIndex % mTileXCount) > 0) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex - 1] == -2) )   // tile to left points right
-						|| ( ((xyIndex % mTileXCount) < (mTileXCount - 1)) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex + 1] == -1) )   // tile to right points left
-					)
-					{
-						 turnsHold++;
-					}
-
-					// mSolveCrazyPlayFields[mHistoryPushIndex] = mSolveCrazyPlayFields[historyCurrentIndex].slice(0, mTileXYCount);
-					for (var index = 0; index < mTileXYCount; index++) { mSolveCrazyPlayFields[mHistoryPushIndex][index] = mSolveCrazyPlayFields[historyCurrentIndex][index]; };
-					mHistoryxyIndexes[mHistoryPushIndex]= xyIndex + mTileXCount;
-					mHistoryCounts[mHistoryPushIndex] = count + 1;
-					mHistoryTurns[mHistoryPushIndex] = turnsHold;					
-					mHistoryPushIndex = (mHistoryPushIndex + 1) % mSolveCrazyPlayFields.length;
-					if (mHistoryPushIndex == mHistoryPopIndex)
-					{
-						mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length;
-						// if ((mSolveUpdateCount % 2) == 0) { mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length; }
-						mStatePushPopped = true;
-					}
-				}
-				
-				// if we get here, and no paths were taken, we wound up at a dead end/stuck (a path which ended but did NOT get rid of all tiles).
-				// regardless of good or dead path, we're done with this playfield (mHistoryPopIndex++ effectively discards it)
-			}
-			// </KEEP LOOKING>
-
-		}
-
-		mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length;   // Move immediately, so we can check whether mHistoryPushIndex == mHistoryPopIndex and move it again. mHistoryPopIndex MIGHT EQUAL mHistoryPushIndex at this point.		
-		
-		// <SEARCHED EVERYTHING>
-		if (mHistoryPopIndex == mHistoryPushIndex)
-		{
-			if (mSolutions > 0)
-			{
-				newState = 2;   // Finished with 1+ successful solutions! mStatePushPopped indicates whether more solutions were possible
-			}
-			else
-			{
-				newState = 1;   // Finished without success (Failed). mStatePushPopped indicates whether more solutions were possible
-				// Note: Don't say Fail until you've checked mStatePushPopped
-			}
-		}
-		// <SEARCHED EVERYTHING>		
-	}
-	// </HEAVY CHECK>
-
-	mSolveUpdateCount++;
-	
-	return newState;
-}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // <GRID GENERATION>
@@ -8569,7 +8240,7 @@ function WorldChange(pWorldMode, pWorldDayOfWeek, pWorldEvening)
 
 		if (mWorldMode == 1)
 		{
-			LevelsGet("Level" + mWorldEvening + "" + mWorldDayOfWeek + ".json");   // asynchronous
+			LevelsGet("Level" + mWorldEvening + "" +  "000".substring(0, 3 - ("" + mWorldDayOfWeek).length) +  mWorldDayOfWeek + ".json");   // asynchronous
 		}
 		else
 		{
@@ -9066,6 +8737,19 @@ function WorldResetNew()
 		{
 			alert("WorldResetNew Error: WorldCheck found problems in the JSON. mLevelIndex:'" + mLevelIndex + "'\n" + holdErrorMessage);
 		}
+		
+		else if (
+			(mLevelGenerate == "fix")
+			&& ((mLevels[mLevelIndex].length > 15) && (mLevels[mLevelIndex][15] != null))
+		)
+		{
+			// alert(mLevelIndex + " NO extra!");
+			console.log("NO " + JSON.stringify(mLevels[mLevelIndex]));
+			mState = 2;
+			mWeekdayLevelsRemaining--;   // level is fixed, this moves to the next one.
+			window.setTimeout(WorldResetNew, 15, true); return;
+		}
+
 		else
 		{
 			mState = 0;
@@ -9859,21 +9543,35 @@ function WorldReset(pFull = true)
 
 		if (mLevelGenerate != null)
 		{
-			// SolveUpdate needs to approve this level. Keep looping until 1 solution found.
-			// Don't do any quick analysis to discard, might need to keep due to Urine
-
-			// break it (hopefully) for URINE!
-			// debugJIm - did NOT test this.
-			if ( (solved) && (mLevelGenerate[2] == 1) )
+			// untested
+			if (
+				(mLevelGenerate == "fix")
+				&& ((mLevels[mLevelIndex].length > 15) && (mLevels[mLevelIndex][15] != null))
+			)
 			{
-				var holdTotal = parseInt(mTileTotal * 0.025); if (holdTotal < 3) { holdTotal = 3; }
-				holdTotal = 1;
-				for (var count = 0; count < holdTotal; count++) { TileRemove(); }
+				mState = 2;
+				window.setTimeout(WorldResetFinish, 15);
 			}
+			
+			// tested
+			else
+			{
+				// SolveUpdate needs to approve this level. Keep looping until 1 solution found.
+				// Don't do any quick analysis to discard, might need to keep due to Urine
 
-			mState = SolveUpdateStart();
+				// break it (hopefully) for URINE!
+				// debugJIm - did NOT test this.
+				if ( (solved) && (mLevelGenerate[2] == 1) )
+				{
+					var holdTotal = parseInt(mTileTotal * 0.025); if (holdTotal < 3) { holdTotal = 3; }
+					holdTotal = 1;
+					for (var count = 0; count < holdTotal; count++) { TileRemove(); }
+				}
 
-			window.setTimeout(WorldResetUpdate, 15);
+				mState = SolveUpdateStart();
+
+				window.setTimeout(WorldResetUpdate, 15);
+			}
 		}
 		else
 		{
@@ -10253,6 +9951,8 @@ function FinishTileRemoveAll()
 function WorldResetFinish()
 {
 	/*
+	Called once per level (everytime new level starts).
+	
 	At this point, we have a VALID level to play. 2 Types of VALID:
 	1. We found 1+ solutions (mSolutions > 0), therefore Level CAN be solved.
        While playing (even before moving), SolveUpdate will finish finding MORE solutions, answers and Final Tiles
@@ -10301,7 +10001,8 @@ function WorldResetFinish()
 		mState = SolveUpdate(2000);
 	}
 	*/
-	
+	mGrowWordTileTotal = 0;
+
 	CurtainRefresh(2);	
 	WorldPlayFieldResize();	
 	TilesWhite();
@@ -10338,10 +10039,15 @@ function WorldResetFinish()
 	// we have a lovely perfect mPlayfield, let's add some extra tiles (VERY slow process)
 	// Consider adding (!mStatePushPopped == true), although I've seen Extras addedd to levels with this?!?!
 	// if there are a TON of solutions then it's a very dense level with lots of possibilities - it will take too long to determine failure, and adding extra tiles to a mass of tiles isn't very fun (hard to deduce)
-	if ((mLevelGenerate != null) && ((mLevelGenerate == "fix") || (mLevelGenerate[3])) && (mSolutions < 200000))
+	if (
+		(mLevelGenerate != null)
+		&& ((mLevelGenerate == "fix") || (mLevelGenerate[3]))
+		&& (mSolutions < 200000)
+		&& ((mLevelIndex == -1) || (mLevels[mLevelIndex][15] == null))
+	)
 	{
 		// Talk item in 5th column happens BEFORE gameplay starts, so tiles can be rebuilt if needed.
-		mTalkStates[TalkType.tileExtra] = 10;
+		mTalkStates[TalkType.tileExtra] = 5;   // formerly 10
 	
 		mState = 0;   // was formerly 2. SolveUpdateStart rightfully complains if it's not at 0.
 		let preserveSolutions = mSolutions;
@@ -10684,15 +10390,14 @@ window.onload = function()
 	mWord.shakeRatio = 0;
 	mWord.shakeRatioAngleOld = 0;
 	mWord.fontRatio = 1.0;
+	mWord.jimColor = "#FFFFFF";
 	mWord.textShadowColor = "#000000";
+	mWord.jimOpacity = 0;
 	mWord.aliveRemember = 0;
 	mWord.screenWidth = -1;    // preserve width (static variable)
 	mWord.screenHeight = -1;   // preserve height (static variable)
 	mWord.fontSizeMain = -1;   // preserve font size (static variable)
 	mWord.tileTotal = 0;   // background word starts counting down
-	mWord.jimOpacity = 1;
-	mWord.jimOpacityFinal = 0;	
-	mWord.jimColor = "#FFFFFF";
 	document.body.appendChild(mWord);
 	// </WORD SETUP>
 
@@ -11546,6 +11251,8 @@ function WorldLevelReset()
 	mPlayer.colorR = 255; mPlayer.colorG = 255; mPlayer.colorB = 0;
 	mPlayer.transform.jimRotate = 360 * 2; 	
 	RotateDiv(mPlayer.div, mPlayer.transform.jimRotate);
+
+	mGrowWordTileTotal = 0;   // Start growing the number again
 	
 	mPlayer.top = parseInt(mRememberPlayerXYIndex / mTileXCount);
 	mPlayer.left = mRememberPlayerXYIndex - (mPlayer.top * mTileXCount);
@@ -11827,11 +11534,12 @@ function WorldUpdate(pTimeStamp = 100)
 	mWorldUpdateCalled = true;
 
 	var requestFrame = true;
-	if (pTimeStamp - TimeStampOld >= (1000.0 / 60.0))
+	const frameRate = (1000.0 / 60.0);
+	if (pTimeStamp - TimeStampOld >= frameRate)
 	{
 		// Fixed frame rate. Everything in here runs at 60fps (no more, no less)
 		// If machine can't handle that, game slows down
-		if ((pTimeStamp - TimeStampOld) > (1000.0 / 60.0) * 1.2)
+		if ((pTimeStamp - TimeStampOld) > frameRate * 1.2)
 		{
 			// we're too backed up, process it all
 			TimeStampOld = pTimeStamp;
@@ -11839,7 +11547,7 @@ function WorldUpdate(pTimeStamp = 100)
 		else
 		{
 			// we'll do 1/60th now and then return QUICKER if more than 1/60th passed
-			TimeStampOld += (1000.0 / 60.0);
+			TimeStampOld += frameRate;
 		}
 		mWorldFrameCounter++;
 
@@ -13193,7 +12901,11 @@ function Player()
 							)
 							{
 								mUseTheForceState = 1;
-								if ( (mUrineState < 0) || (mWorldRepeatCount >= 3) ) { mUseTheForceState = 2; }
+								if (
+									(mUrineState < 0)
+									|| ( (mWorldMode == 0) && (mWorldRepeatCount >= 3) )
+									|| ( (mWorldMode > 0) && (mWorldRepeatCount >= 1) )
+								) { mUseTheForceState = 2; }
 								mUseTheForceStateWait = 4;   // do NOT allow usetheforcestate to occur for another 3 levels
 
 								if (mUseTheForceState == 1)
