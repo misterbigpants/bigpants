@@ -14845,14 +14845,13 @@ function Browser()
 				// Touch Special Case: User holds for 800ms
 				if (Date.now() - this.touchStartDate > 800)   // 450 * 2 too long
 				{
-					/*
 					// we have not moved for a very long time (almost 1 second)
 					this.KeyPush(32, 2);   // Attempt to finish the level (Shift + SpaceBar)
 					this.touchState = 0;
 					mPlayer.Update();
 					mPlayer.Draw();
-					*/
-					
+
+					/*					
 					// 2024-09-05 DEBUG
 					WordShow("DEBUG<BR>SUCCESS!", "#FFFFFF", "#0000FF", 1.2, 2000 + 1500, 0.015);
 					SoundBufferPlay(mSoundBufferMisc, 1, SoundBufferMiscType.soundthud);
@@ -14860,6 +14859,7 @@ function Browser()
 					WorldEndNew();
 					gBrowser.KeyReset();
 					mWorldStateAlive = Date.now() + 100;
+					*/
 				}
 				
 				// Touch Special Case: User swiped and held BEFORE enough time passed for instant.
