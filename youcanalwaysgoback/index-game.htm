@@ -17,9 +17,9 @@ const urlParams = new URLSearchParams(window.location.search);
 var configCacheBreaker = Math.floor(Math.random() * 10000);
 var configDebug = 0;
 var configPaid = 1;
-var configVersion = "2024-10-15";
+var configVersion = "2024-10-29";
 var configMouseDisable = false;
-var configAnalytics = 0;
+var configAnalytics = 1;
 </SCRIPT>
 
 <!-- Google tag (gtag.js) -->
@@ -35,6 +35,25 @@ var configAnalytics = 0;
 </script>
 
 <!--
+Remember:
+	mWorldMode-mWorldEvening-mWorldDayOfWeek-mLevelIndex
+
+	mWorldMode   0:Narrative 1:WeekDay 2:Challenges
+
+	mWorldEvening   0:DayTime   1:Evening
+
+	mWorldDayOfWeek (SHOULD be 0 - 6, instead Level 7-13 are Challenge I)
+		mWorldDayOfWeek does NOT need the clarity of mWorldMode which was added AFTERWARD
+
+	mLevelIndex
+		Weekdays/Challenges - starts at 0 and counts up
+		"Frank's Story" it's effectively random
+
+2024-10-25 Remove mStatNewFail count from top right
+	innerHTML = mStatNewFail + ", " + mStatNewSolution.toLocaleString();
+
+2024-10-23 BUG. Why does Silver take so long to start? Perhaps not a weekday.
+
 2024-10-22 DONE. PINK trail should override yellow trail.
 2024-10-22 DONE. Player should leave yellow trail.
 2024-10-21 DONE. Fix Numbers background - allows SPECIAL UseTheFOrce and other messages
@@ -148,25 +167,44 @@ padding-bottom:calc(100vh * 0.035);
 <SCRIPT>
 "use strict"; 
 
+var mWeekdayCutoffMilliseconds = 0;   // # of seconds since epoch (Date.now)
+try
+{
+	mWeekdayCutoffMilliseconds = parseInt(getCookie("WeekdayCutoff", 0));   // Have we attempted today's challenge? (Only 1 attempt per day)
+} catch {}
+
 var documentBodyStyleBackgroundColor = "";
 
-function GoogleAnalytics(pExtra)
+function GoogleAnalytics(pExtra = "")
 {
 	if (configAnalytics > 0)
 	{
-		let preface = "You";
-		
-		if (mWorldMode == 0)
+		try
 		{
-			preface += "-Frank";
-		}
-		else
-		{
-			preface += "-" + mUserData.weekday[mWorldDayOfWeek][mWorldEvening].caption;
-			if (mWorldEvening == 1) { preface += "-Eve"; } else { preface += "-Day"; } 
-		}
-		
-		gtag('event', preface + "-" + pExtra, {});
+			let preface = "You";
+			
+			if (mWorldMode == 0)
+			{
+				preface += "-Frank";
+			}
+			else
+			{
+				// Group
+				preface += "-G" + "00".substring(0, 2 - ("" + mWorldMode).length) + mWorldMode;
+				preface += "-" + mWorldEvening;
+				preface += "-000".substring(0, 3 - ("" + mWorldDayOfWeek).length) + mWorldDayOfWeek;
+				// caption can have special characters like "you'll"
+			}
+			
+			// Level
+			preface += "-L";
+			let levelNumber = (mWorldMode == 0) ? (mStatNewFrankLoss + mStatNewFrankWin + 1) : (mLevelIndex + 1);
+			preface += "000".substring(0, 3 - ("" + levelNumber).length) + levelNumber;
+			
+			if (pExtra != "") { preface += "-" + pExtra; }
+			
+			gtag('event', preface, {});
+		} catch {}
 	}
 }
 
@@ -229,22 +267,64 @@ function GetDayEvening()
 {
 	// Using current local Date, returns Day & Evening Mantra should use (does NOT change it) 
 	let holdDate = new Date();   // Test: "2024-09-09T05:30:00" > local time
-	// let holdDate = new Date("Oct 14 2024 20:15:17 GMT-0400");   // Evening
-	// let holdDate = new Date("Oct 14 2024 16:15:17 GMT-0400");   // Daytime
-	if (holdDate.getHours() < 6) { holdDate.setDate(holdDate.getDate() - 1); }   // it's still yesterday until 6am (life should be like that)
-	let holdWorldDayOfWeek = holdDate.getDay();
-	let holdWorldDayOfWeekCaptionShort = holdDate.toLocaleDateString(undefined, { weekday: 'short' }); 
-	let holdWorldDayOfWeekCaptionLong = holdDate.toLocaleDateString(undefined, { weekday: 'long' });
-		
-	let holdWorldEvening = 0;
-	if (configPaid == 1)
+	// let holdDate = new Date("Oct 14 2024 20:15:17 GMT-0400");   // Evening 7:15pm EDT
+	// let holdDate = new Date("Oct 14 2024 16:15:17 GMT-0400");   // Daytime 3:15pm EDT
+	let holdWorldEvening = 0;   // evening is 6pm to 6am
+
+	if (holdDate.getHours() < 6)   // it's still yesterday until 6am (life should be like that)
 	{
-		// we may have switched to evening
-		holdWorldEvening = ((holdDate.getHours() >= 18) || (holdDate.getHours() < 6)) ? 1 : 0;   // evening is 6pm to 6am
+		holdDate.setDate(holdDate.getDate() - 1);
+		if (configPaid == 1) { holdWorldEvening = 1; }
 	}
-	
-	return [holdWorldDayOfWeek, holdWorldEvening, holdWorldDayOfWeekCaptionShort, holdWorldDayOfWeekCaptionLong];
+	else
+	{
+		if ((configPaid == 1) && (holdDate.getHours() >= 18)) { holdWorldEvening = 1; } 
+	}
+		
+	return [
+		holdDate.getDay()
+		, holdWorldEvening
+		, holdDate.toLocaleDateString(undefined, { weekday: 'short' })
+		, holdDate.toLocaleDateString(undefined, { weekday: 'long' })
+	];
 }
+
+function IsWeekdayEnabled()
+{
+	return true;
+	
+	// Current Date + Evening (copied from GetDayEvening)
+	let holdDate = new Date();
+	// let holdDate = new Date("Oct 24 2024 9:00:00 GMT-0400");
+	let holdWorldEvening = 0;
+	if (holdDate.getHours() < 6)
+	{
+		holdDate.setDate(holdDate.getDate() - 1);
+		if (configPaid == 1) { holdWorldEvening = 1; }
+	}
+	else
+	{
+		if ((configPaid == 1) && (holdDate.getHours() >= 18)) { holdWorldEvening = 1; } 
+	}
+	holdDate = holdDate.setHours(0, 0, 0, 0);
+
+	// WeekdayCutoff - cookie set in WorldResetFinish with Date and Time
+	let holdWeekdayCutoffDate = new Date(mWeekdayCutoffMilliseconds);
+	let holdWeekdayCutoffEvening = 0;   // evening is 6pm to 6am
+	if (holdWeekdayCutoffDate.getHours() < 6)   // it's still yesterday until 6am (life should be like that)
+	{
+		holdWeekdayCutoffDate.setDate(holdWeekdayCutoffDate.getDate() - 1);
+		if (configPaid == 1) { holdWeekdayCutoffEvening = 1; }
+	}
+	else
+	{
+		if ((configPaid == 1) && (holdWeekdayCutoffDate.getHours() >= 18)) { holdWeekdayCutoffEvening = 1; } 
+	}
+	holdWeekdayCutoffDate = holdWeekdayCutoffDate.setHours(0, 0, 0, 0);
+	
+	if ((holdDate == holdWeekdayCutoffDate) && (holdWorldEvening == holdWeekdayCutoffEvening)) { return false; } else { return true; }
+}
+
 
 function GetTextSize(pText, pFontSize, pLineHeight = -1)
 {
@@ -256,6 +336,7 @@ function GetTextSize(pText, pFontSize, pLineHeight = -1)
 	if (pLineHeight == -1) { test.style.lineHeight = "normal"; } else { test.style.lineHeight = pLineHeight; }
 	returnValue.height = (test.clientHeight + 1);
 	returnValue.width = (test.clientWidth + 1);
+	test.innerHTML = "";   // DIVS with IDs could have been included, need to remove DUPLICATE IDs this causes.
 	return returnValue;
 }
 
@@ -330,9 +411,8 @@ function MenuFrankEnd()
 
 function MenuShow(pEvent, pInnerHTML, pmWorldClick = null, pCurtainImageInnerHTML = "")
 {
-	// window.setTimeout(WorldResize, 100, 1);
 	window.setTimeout(
-		function () { MenuShow2(pEvent, pInnerHTML, pmWorldClick, pCurtainImageInnerHTML); }
+		function () { MenuShow2(null, pInnerHTML, pmWorldClick, pCurtainImageInnerHTML); }
 		, 100
 	);
 
@@ -344,7 +424,7 @@ function MenuShow(pEvent, pInnerHTML, pmWorldClick = null, pCurtainImageInnerHTM
 	return false;
 }
 
-function MenuShow2(pEvent, pInnerHTML, pmWorldClick = null, pCurtainImageInnerHTML = "")
+function MenuShow2(pEvent, pInnerHTML, pWorldClick = null, pCurtainImageInnerHTML = "")
 {
 	if (configMouseDisable) { try { document.exitPointerLock(); } catch { }; }
 	
@@ -353,7 +433,7 @@ function MenuShow2(pEvent, pInnerHTML, pmWorldClick = null, pCurtainImageInnerHT
 	ButtonChangeState(0);   // code is unable to support menu button when menu is displayed, so hide
 	CurtainRefresh(1);
 
-	pInnerHTML = "<DIV Style='margin:0px; padding-left:50px; padding-right:50px;'>" + pInnerHTML + "</DIV>";
+	pInnerHTML = "<DIV Style='margin:0px; padding:0px 50px 10px 50px;'>" + pInnerHTML + "</DIV>";
 	// pInnerHTML = "<DIV Style='margin:0px; padding-left:calc(100vw * 0.1); padding-right:calc(100vw * 0.1);'>" + pInnerHTML + "</DIV>";
 	WordShow(pInnerHTML, "", "", 0, 0, 0.0, true);   // my kingdom for named parameters :)
 	WordUpdate();
@@ -371,7 +451,7 @@ function MenuShow2(pEvent, pInnerHTML, pmWorldClick = null, pCurtainImageInnerHT
 		mWordCurtainImage.style.display = "";
 	}
 
-	mWorldClick = pmWorldClick;   // Clicking screen causes this function to be called (transitioning to next screen)
+	mWorldClick = pWorldClick;   // Clicking screen causes this function to be called (transitioning to next screen)
 	
 	if (pEvent != null)
 	{
@@ -404,6 +484,608 @@ function MenuMainResume(pEvent, pWorldState)
 	}
 	return false;
 }
+
+// <CLIPBOARD>
+/*
+Notes
+
+. Clipboard: There are new/better methods that replace execCommand("copy") but they require HTTPS.
+
+. On mobile execCommand("copy") doesn't work unless called by event (OnClick, OnToucheEnd). Even thenit didn't work while main game loop was going.
+  Presumably KeyDown event.cancel and event.preventdefault were killing things (did not test)
+
+. Fave unicode
+  https://www.compart.com/en/unicode/U+1F98D
+
+. https://stackoverflow.com/questions/13093126/insert-unicode-character-into-javascript
+  Omega character: hold ='\u03A9';
+  BUT Green Square character: hold = '\u{1F7E9}'
+*/
+
+function ClipboardCopy(text) {
+  let textArea = document.getElementById("clipboardtextarea");
+  textArea.style.display = "";
+
+  textArea.value = text;
+  textArea.focus();
+  textArea.select();
+  try {
+    document.execCommand('copy');   // old but no https
+  } catch (err) {
+	alert("Unable to copy to clipboard\n" + err);
+  }
+
+  textArea.style.display = "none";
+  textArea.blur();   // make mobile keyboard dissappear
+}
+
+/*
+function ClipboardCopy(text) {
+	// original BUT SLOW on MOBILE
+	const textArea = document.createElement("textarea");
+	textArea.setAttribute("contenteditable", true);
+	textArea.style.zIndex = 200;
+
+	textArea.value = text;
+	document.body.appendChild(textArea);
+	textArea.focus();
+	textArea.select();
+	try {
+	document.execCommand('copy');   // old but no https required
+	} catch (err) {
+	alert("Unable to copy to clipboard\n" + err);
+	}
+	document.body.removeChild(textArea);
+}
+*/
+
+function CopyEverythingToClipboard()
+{
+	/*
+	😑 YCAGB
+	EVERYTHNG (special font)
+	😑 * Steps: 37 *
+	😑 * Time: 4m50s *
+	😑 * Failed: 2 *
+	😑 Frank: 230
+	😁😁😁😁😁😁😁
+	😁😁😁😁😁😁😁
+	😁😁😁😁😁😁😁
+	😁😁😁😁😁😁😁	
+	Evening
+	😁😁😁😁😁😁😁
+	😁😁😁😁😁😁😁
+	😁😁😁😁😁😁😁
+	😁😁😁😁😁😁😁
+	*/
+
+	let eveningMax = (configPaid > 0) ? 1 : 0;
+
+	let text = "";	
+	
+	// Title
+	text += "\u{1F611} YCAGB\n";   // In a text message (on my phone), "You Can Always Go Back" splits across lines
+	text += "\u{1D4D4}\u{1D4E5}\u{1D4D4}\u{1D4E1}\u{1D4E8}\u{1D4E3}\u{1D4D7}\u{1D4DD}\u{1D4D6}\n";
+	//       E        V        E        R          Y        T        H      N        G
+	// text += "\u{1D4D4}\u{1D4E5}\u{1D4D4}\u{1D4E1}\u{1D4E8}\u{1D4E3}\u{1D4D7}\u{1D4D8}\u{1D4DD}\u{1D4D6}\n";
+	//       E        V        E        R          Y        T        H        I        N        G
+
+	// Totals
+	let totalSteps = 0, totalTime = 0, totalFail = 0;
+	for (let index = 0; index < mUserData.weekday.length; index++)
+	{
+		for (let evening = 0; evening <= eveningMax; evening++)
+		{
+			if (mUserData.weekday[index][evening].steps != -1)
+			{
+				if (mUserData.weekday[index][evening].steps > 0) { totalSteps += mUserData.weekday[index][evening].steps; }
+				if (mUserData.weekday[index][evening].time > 0) { totalTime += mUserData.weekday[index][evening].time; }
+				if (mUserData.weekday[index][evening].fail > 0) { totalFail += mUserData.weekday[index][evening].fail; }
+			}
+		}
+	}
+	text += ""
+		+ "\u{1F611} * Steps: " + totalSteps.toLocaleString() + " *\n"
+		+ "\u{1F611} * Time: " + FormatTime(totalTime, false) + " *\n"
+		+ "\u{1F611} * Failed: " + totalFail.toLocaleString() + " *\n"
+		+ "";
+
+	// Yellow and Brown Circles
+	for (let evening = 0; evening <= eveningMax; evening++)
+	{
+		 if (evening > 0) { text += "Evening\n"; }
+		for (let worldMode = 1; worldMode < mWorldModeMeta.length; worldMode++)
+		{
+			let line4Complete = true;
+			for (let index = (worldMode - 1) * 7; index < (worldMode - 1) * 7 + 7; index++)
+			{
+				if (mUserData.weekday[index][evening].steps == -1) { line4Complete = false; break; }
+			}
+			if (line4Complete)
+			{
+				if (evening == 1)
+				{
+					// 7 Gorillas
+					text += "\u{1F98D}\u{1F98D}\u{1F98D}\u{1F98D}\u{1F98D}\u{1F98D}\u{1F98D}";
+				}
+				else
+				{
+					// 7 Super Hearts
+					text += "\u{1F60D}\u{1F60D}\u{1F60D}\u{1F60D}\u{1F60D}\u{1F60D}\u{1F60D}";
+				}
+			}
+			else
+			{
+				// yellow and brown circles
+				for (let index = (worldMode - 1) * 7; index < (worldMode - 1) * 7 + 7; index++)
+				{
+					text += (mUserData.weekday[index][evening].steps == -1) ? '\u{1F7E4}' : '\u{1F7E1}';
+				}
+			}
+			text += "\n";
+		}
+	}
+
+	// Today's date
+	// text += (new Date()).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'}) + "\n";   // Dec 4, 2024
+
+	ClipboardCopy(text);
+}
+
+function CopyStatsToClipboard(pWorldMode, pWorldEvening)
+{
+	/*
+	😑 YCAGB
+	😑 Weekdays / "II: Samey"
+	😑 * Steps: 37 *
+	😑 * Time: 4m50s *
+	😑 * Failed: 2 *
+	😁😁😁😁😁😁😁
+	Evening
+	*/
+
+	let text = "";	
+	
+	// Title
+	text += "\u{1F611} YCAGB\n";   // In a text message (on my phone), "You Can Always Go Back" splits across lines
+
+	// Weekday   "II: Samey"    (adding "Evening" splits across lines)
+	text += "\u{1F611} ";
+	let caption = mWorldModeMeta[pWorldMode].caption;
+	if (pWorldMode > 1) { caption += "\"" + caption.replace("Challenge ", "") + "\""; }
+	text += caption + "\n";
+
+	// Totals
+	// text += "\u{1F611} Totals\n";   // is this worth an entire line?
+
+	// Totals
+	let totalSteps = 0, totalTime = 0, totalFail = 0;
+	for (let index = (pWorldMode - 1) * 7; index < (pWorldMode - 1) * 7 + 7; index++)
+	{
+		if (mUserData.weekday[index][pWorldEvening].steps != -1)
+		{
+			if (mUserData.weekday[index][pWorldEvening].steps > 0) { totalSteps += mUserData.weekday[index][pWorldEvening].steps; }
+			if (mUserData.weekday[index][pWorldEvening].time > 0) { totalTime += mUserData.weekday[index][pWorldEvening].time; }
+			if (mUserData.weekday[index][pWorldEvening].fail > 0) { totalFail += mUserData.weekday[index][pWorldEvening].fail; }
+		}
+	}
+	text += ""
+		+ "\u{1F611} * Steps: " + totalSteps.toLocaleString() + " *\n"
+		+ "\u{1F611} * Time: " + FormatTime(totalTime, false) + " *\n"
+		+ "\u{1F611} * Failed: " + totalFail.toLocaleString() + " *\n"
+		+ "";
+
+	// Week Summary: Yellow and Brown Circles
+	let line4Complete = true;
+	for (let index = (pWorldMode - 1) * 7; index < (pWorldMode - 1) * 7 + 7; index++)
+	{
+		if (mUserData.weekday[index][pWorldEvening].steps == -1) { line4Complete = false; break; }
+	}
+	if (line4Complete)
+	{
+		if (pWorldEvening == 1)
+		{
+			// 7 Gorillas
+			text += "\u{1F98D}\u{1F98D}\u{1F98D}\u{1F98D}\u{1F98D}\u{1F98D}\u{1F98D}";
+		}
+		else
+		{
+			// 7 Super Hearts
+			text += "\u{1F60D}\u{1F60D}\u{1F60D}\u{1F60D}\u{1F60D}\u{1F60D}\u{1F60D}";
+		}
+	}
+	else
+	{
+		// yellow and brown circles
+		for (let index = (pWorldMode - 1) * 7; index < (pWorldMode - 1) * 7 + 7; index++)
+		{
+			text += (mUserData.weekday[index][pWorldEvening].steps == -1) ? '\u{1F7E4}' : '\u{1F7E1}';
+		}
+	}
+	text += "\n";
+
+	if (pWorldEvening > 0) { text += "Evening\n"; }
+
+	// Today's date
+	// text += (new Date()).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'}) + "\n";   // Dec 4, 2024
+
+	ClipboardCopy(text);
+}
+
+function CopySuccessToClipboard(
+	pWorldMode, pWorldEvening, pWorldDayOfWeek = -1
+	, pStepNew = -1, pStepOld = -1, pTimeNew = -1, pTimeOld = -1, pFailCountNew = -1, pFailCountOld = -1
+)
+{
+	/* 2 Modes
+	1. Weekday
+	😑 YCAGB
+	😑 Saturday / Sat   (no quotes)
+	😑 Steps: 37 😁
+	😑 Time: 1m40s 😁
+	😑 Failed: 2 😁
+	😁😁😁😁😁😁😁
+	Evening
+	
+	2. Challenge
+	😑 YCAGB
+	😑 "II: Samey"
+	😑 "Abound"
+	😑 Steps: 37 😁
+	😑 Time: 1m40s 😁
+	😑 Failed: 2 😁
+	😁😁😁😁😁😁😁
+	Evening
+
+	Date doesn't matter - they'll have the text message date or e-mail date
+	*/
+
+	let text = "";	
+	
+	// Title
+	text += "\u{1F611} YCAGB\n";   // In a text message (on my phone), "You Can Always Go Back" splits across lines
+
+	// "II: Samey"
+	if (pWorldMode > 1) { text += "\u{1F611} \"" + mWorldModeMeta[pWorldMode].caption.replace("Challenge ", "") + "\"\n"; }
+	
+	// Wednesday   "Abound"
+	text += "\u{1F611} ";
+	text += (pWorldMode > 1)
+		? "\"" + mUserData.weekday[pWorldDayOfWeek][pWorldEvening].captionLong + "\""
+		: mUserData.weekday[pWorldDayOfWeek][pWorldEvening].captionLong;
+	text += "\n";
+	
+	text += "Steps: " + pStepNew.toLocaleString() + " ";		
+	if ((pStepOld == -1) || (pStepNew < pStepOld)) { text += "\u{1F601}"; } else if (pStepNew > pStepOld) { text += "\u{1F622}"; } else { text += "\u{1F611}"; }
+	text += "\n";
+
+	text += "Time: " + FormatTime(pTimeNew, false) + " ";
+	if ((pTimeOld == -1) || (pTimeNew < pTimeOld)) { text += "\u{1F601}"; } else if (pTimeNew > pTimeOld) { text += "\u{1F622}"; } else { text += "\u{1F611}"; }
+	text += "\n";
+
+	text += "Failed: " + pFailCountNew.toLocaleString() + " ";
+	if ((pFailCountOld == -1) || (pFailCountNew < pFailCountOld)) { text += "\u{1F601}"; } else if (pFailCountNew > pFailCountOld) { text += "\u{1F622}"; } else { text += "\u{1F611}"; }
+	text += "\n";
+
+	// Week Summary: Yellow and Brown Circles
+	let line4Complete = true;
+	for (let index = (pWorldMode - 1) * 7; index < (pWorldMode - 1) * 7 + 7; index++)
+	{
+		if (mUserData.weekday[index][pWorldEvening].steps == -1) { line4Complete = false; break; }
+	}
+	if (line4Complete)
+	{
+		if (pWorldEvening == 1)
+		{
+			// 7 Gorillas
+			text += "\u{1F98D}\u{1F98D}\u{1F98D}\u{1F98D}\u{1F98D}\u{1F98D}\u{1F98D}";
+		}
+		else
+		{
+			// 7 Super Hearts
+			text += "\u{1F60D}\u{1F60D}\u{1F60D}\u{1F60D}\u{1F60D}\u{1F60D}\u{1F60D}";
+		}
+	}
+	else
+	{
+		// yellow and brown circles
+		for (let index = (pWorldMode - 1) * 7; index < (pWorldMode - 1) * 7 + 7; index++)
+		{
+			text += (mUserData.weekday[index][pWorldEvening].steps == -1) ? '\u{1F7E4}' : '\u{1F7E1}';
+		}
+	}
+	text += "\n";
+
+	if (pWorldEvening > 0) { text += "Evening\n"; }
+
+	ClipboardCopy(text);
+}
+
+function CopyLevelToClipboard()
+{
+	try
+	{
+	// Unicode characters are different widths, determined by font
+	// Could NOT find a MonoSpace font that supported the Unicode characters (do any?),
+	// so manually determined which Unicode characters were the same width in the default font (NOT Monospaced) - hopefully this holds up
+
+	// Could also switch from black and white to colour: "purple and yellow", "green and brown" both worked well	
+
+	// <PUZZLE>
+	function puzzleGetCharacter(x, y, pFlipped)
+	{
+		if ((y * mTileXCount + x) == mRememberPlayerXYIndex)
+		{
+			return '\u{278B}';   // 10683 White Circle with Upper Right Quadrant[1] 				
+		}
+		else if (mSolvedPlayfield[0][y * mTileXCount + x] != 0)
+		{				
+			return '\u{278A}';   // 10687 black circle (white dot in center)
+		}
+		else
+		{
+			return '\u{2780}';   // 10678 white circle 
+		}
+
+		/*
+		// characters not iPhone mail compatible
+		// doesn't matter whether it's  or Flipped, characters are the same rotated
+		if ((y * mTileXCount + x) == mPlayer.xyIndex)
+		{
+			return '\u{25F7}';   // White Circle with Upper Right Quadrant[1] 				
+		}
+		else if (mPlayField[y * mTileXCount + x] > 0)
+		{				
+			return '\u{1F789}';   // black circle (white dot in center)
+		}
+		else
+		{
+			return '\u{1F785}';   // white circle 
+		}
+		*/
+	}
+
+	function puzzleFlipped()
+	{
+		for (var x = 0; x < mTileXCount; x++)
+		{
+			for (var y = 0; y < mTileYCount; y++)
+			{
+				text += puzzleGetCharacter(x, y, true);
+			}
+			text += '\n';
+		}
+	}
+	
+	function puzzle()
+	{
+		for (var y = 0; y < mTileYCount; y++)
+		{
+			for (var x = 0; x < mTileXCount; x++)
+			{
+				text += puzzleGetCharacter(x, y, false);
+			}
+			text += '\n';
+		}
+	}
+	// <PUZZLE>
+
+	// <ANSWER>
+	/*
+	// Directional circles: perfect on PC gmail, problems in PC Notepad
+	// variable width on iPhone mail :(
+	function answerGetCharacter(x, y, pFlipped)
+	{
+		let xyIndex = y * mTileXCount + x;
+		
+		if (xyIndex == mRememberPlayerXYIndex)
+		{
+			return '\u{25CD}';   // circle with vertical fill https://www.compart.com/en/unicode/U+25CD 				
+		}
+		else
+		{
+			let dir = mSolvedPlayfield[0][xyIndex];		
+			if (pFlipped)
+			{
+				switch (dir)
+				{
+					case 0: return '\u{25CE}'; break;   // empty spot
+					case 1: return '\u{25D4}'; break;   // final tile   // circle with top quarter filled in
+					case -1: return '\u{25D3}'; break;   // up
+					case -2: return '\u{25D2}'; break;   // down
+					case -3: return '\u{25D0}'; break;   // left   https://www.compart.com/en/unicode/U+25D0
+					case -4: return '\u{25D1}'; break;   // right
+					default: console.assert(true, "CopyLevelToClipboard.answerGetCharacter Error: Unexpected value in mSolvedPlayfield[0] '" + dir + "'");
+				}		
+			}
+			else
+			{
+				switch (dir)
+				{
+					case 0: return '\u{25CE}'; break;   // empty spot
+					case 1: return '\u{25D4}'; break;   // final tile   // circle with top quarter filled in
+					case -3: return '\u{25D3}'; break;   // up
+					case -4: return '\u{25D2}'; break;   // down
+					case -1: return '\u{25D0}'; break;   // left   https://www.compart.com/en/unicode/U+25D0
+					case -2: return '\u{25D1}'; break;   // right
+					default: console.assert(true, "CopyLevelToClipboard.answerGetCharacter Error: Unexpected value in mSolvedPlayfield[0] '" + dir + "'");
+				}
+			}
+		}
+	}
+	*/
+	
+	// Monospaced Ascii: In PC Notepad++, these character aren't Monospaced
+	// Monospaced in PC gmail, iPhone mail, iPhone Twitter
+	function answerGetCharacter(x, y, pFlipped, pType)
+	{
+		let xyIndex = y * mTileXCount + x;
+		
+		if (xyIndex == mRememberPlayerXYIndex)
+		{
+			if (pType == 1)
+			{
+				return '\u{25CD}';   // letter O 				
+			}
+			else
+			{
+				return '\u{FF2F}';   // circle with vertical fill https://www.compart.com/en/unicode/U+25CD 				
+			}
+		}
+		else
+		{
+			let dir = mSolvedPlayfield[0][xyIndex];
+
+			// <SYMBOLS>
+			if (pType == 1)
+			{
+				if (pFlipped)
+				{
+					switch (dir)
+					{
+						case 0: return '\u{25CE}'; break;   // empty spot
+						case 1: return '\u{25D4}'; break;   // final tile   // circle with top quarter filled in
+						case -1: return '\u{25D3}'; break;   // up
+						case -2: return '\u{25D2}'; break;   // down
+						case -3: return '\u{25D0}'; break;   // left   https://www.compart.com/en/unicode/U+25D0
+						case -4: return '\u{25D1}'; break;   // right
+						default: console.assert(true, "CopyLevelToClipboard.answerGetCharacter Error: Unexpected value in mSolvedPlayfield[0] '" + dir + "'");
+					}		
+				}
+				else
+				{
+					switch (dir)
+					{
+						case 0: return '\u{25CE}'; break;   // empty spot
+						case 1: return '\u{25D4}'; break;   // final tile   // circle with top quarter filled in
+						case -3: return '\u{25D3}'; break;   // up
+						case -4: return '\u{25D2}'; break;   // down
+						case -1: return '\u{25D0}'; break;   // left   https://www.compart.com/en/unicode/U+25D0
+						case -2: return '\u{25D1}'; break;   // right
+						default: console.assert(true, "CopyLevelToClipboard.answerGetCharacter Error: Unexpected value in mSolvedPlayfield[0] '" + dir + "'");
+					}
+				}
+			}
+			// </SYMBOLS>
+
+			// <ASCII>
+			else
+			{
+				if (pFlipped)
+				{
+					switch (dir)
+					{
+						case 0: return '\u{FF0D}'; break;   // empty spot
+						case 1: return '\u{FF38}'; break;   // final tile   // circle with top quarter filled in
+						case -1: return '\u{FF3E}'; break;   // up
+						case -2: return '\u{FF56}'; break;   // down
+						case -3: return '\u{FF1C}'; break;   // left   https://www.compart.com/en/unicode/U+25D0
+						case -4: return '\u{FF1E}'; break;   // right
+						default: console.assert(true, "CopyLevelToClipboard.answerGetCharacter Error: Unexpected value in mSolvedPlayfield[0] '" + dir + "'");
+					}		
+				}
+				else
+				{
+					switch (dir)
+					{
+						case 0: return '\u{FF0D}'; break;   // empty spot   // 25CE good on PC but not mobile, 2B58 comes close (and it's full empty circle)
+						case 1: return '\u{FF38}'; break;   // final tile   // circle with top quarter filled in
+						case -3: return '\u{FF3E}'; break;   // up
+						case -4: return '\u{FF56}'; break;   // down
+						case -1: return '\u{FF1C}'; break;   // left   https://www.compart.com/en/unicode/U+25D0
+						case -2: return '\u{FF1E}'; break;   // right
+						default: console.assert(true, "CopyLevelToClipboard.answerGetCharacter Error: Unexpected value in mSolvedPlayfield[0] '" + dir + "'");
+					}
+				}
+			}
+			// </ASCII>
+		}
+	}
+	
+	function answerFlipped(pType)
+	{
+		for (var x = 0; x < mTileXCount; x++)
+		{
+			for (var y = 0; y < mTileYCount; y++)
+			{
+				text += answerGetCharacter(x, y, true, pType);
+			}
+			text += '\n';
+		}
+	}
+	
+	function answer(pType)
+	{
+		for (var y = 0; y < mTileYCount; y++)
+		{
+			for (var x = 0; x < mTileXCount; x++)
+			{
+				text += answerGetCharacter(x, y, false, pType);
+			}
+			text += '\n';
+		}
+	}
+	// </ANSWER>
+	
+	// <MAIN>
+	// https://unicode-explorer.com/b/25A0
+	let text = "";
+	text += "You Can Always Go Back - Help Has Arrived\n";
+	text += GetLevelName(mWorldMode, mWorldEvening, mWorldDayOfWeek, " - ") + '\n';
+	text += '\n';
+
+	// Don't explain, let the art speak for itself
+	// Need to match CURRENT orientation of Tiles for it to be helpful
+	// On an iPhone () the answer will look different than PC (Flipped)
+	// https://www.compart.com/en/unicode/U+25F7
+
+	if (mWorldFlipped)
+	{
+		puzzleFlipped();
+		text += '\n';
+		answerFlipped(1);   // symbols
+		text += '\n';
+		answerFlipped(0);   // ascii
+		text += '\n';
+	}
+	else
+	{
+		puzzle();
+		text += '\n';
+		answer(1);
+		text += '\n';	
+		answer(0);
+		text += '\n';	
+	}	
+
+	ClipboardCopy(text);
+	// </MAIN>
+	} catch (err) { alert("Problems copying to Clipboard\n" + err); }
+}
+
+
+// Amazing! Actually does HTML compatible with Twitter and GMail. MIGHT be better than Wordle (but unsure of support)
+// https://stackoverflow.com/questions/36639681/how-to-copy-text-from-a-div-to-clipboard
+function ClipboardCopyHTMLUNUSEDbutTESTED(str) {
+  function listener(e) {
+    e.clipboardData.setData("text/html", str);
+    e.clipboardData.setData("text/plain", str);
+    e.preventDefault();
+  }
+  document.addEventListener("copy", listener);
+  document.execCommand("copy");
+  document.removeEventListener("copy", listener);
+};
+
+function copyDivToClipboardUNUSEDandUNTESTED() {
+	var range = document.createRange();
+	range.selectNode(document.getElementById("FILLTHISOUT"));
+	window.getSelection().removeAllRanges(); // clear current selection
+	window.getSelection().addRange(range); // to select text
+	document.execCommand("copy");
+	window.getSelection().removeAllRanges();// to deselect
+}
+// </CLIPBOARD>
 
 function MenuMainRestart(pEvent, pWorldMode, pDayOfWeek, pEvening)
 {	
@@ -456,7 +1138,7 @@ function MenuMainRestart(pEvent, pWorldMode, pDayOfWeek, pEvening)
 	mStatNewFail = 0;
 	// </RESET>
 
-	if (mWorldMode == 1)
+	if (mWorldMode > 0)
 	{
 		mStatBottomLeftDiv.innerHTML = FormatTime(mStatNewTime);
 		mStatBottomRightDiv.innerHTML = mStatNewSteps.toLocaleString();
@@ -525,11 +1207,12 @@ function MenuMain(pEvent, pMenuMainPreserveWorldState = -1)
 	// there might be no game to resume
 	if (mMenuMainPreserveWorldState == 0)
 	{
-		innerHTML += "<DIV Style='padding-bottom:6%; color:#909090;'>RESUME</DIV>";
+		// innerHTML += "<DIV Style='padding-bottom:6%; color:#909090;'>RESUME</DIV>";
 	}
 	else
 	{
-		innerHTML += "<DIV Style='padding-bottom:6%'><SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='MenuMainResume(event, " + mMenuMainPreserveWorldState + ");'>RESUME</SPAN></DIV>";
+		let paddingBottom = (IsWeekdayEnabled()) ? "3%" : "6%";
+		innerHTML += "<DIV Style='padding-bottom:" + paddingBottom + "'><SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='MenuMainResume(event, " + mMenuMainPreserveWorldState + ");'>RESUME</SPAN></DIV>";
 	}
 	// </RESUME>
 
@@ -545,11 +1228,11 @@ function MenuMain(pEvent, pMenuMainPreserveWorldState = -1)
 
 	let eveningCaption = ((configPaid == 1) && (holdWorldEvening == 1)) ? " EVENING" : "";
 
-
-	// <RESTART MANTRA>
+	// <RESTART WEEKDAY MANTRA>
+	// if you haven't completed the first level of the weekday, you're allowed to restart it.
+	if (IsWeekdayEnabled())
 	{
-		let holdHTML = holdWorldDayOfWeekCaptionLong + eveningCaption;
-				
+		/*
 		// things may have changed so (if chosen) Mantra is going to be different			
 		if ((holdWorldDayOfWeek != mWorldDayOfWeek) || (holdWorldEvening != mWorldEvening))
 		{
@@ -567,39 +1250,37 @@ function MenuMain(pEvent, pMenuMainPreserveWorldState = -1)
 			holdHTML = "RESTART " + holdHTML;
 		}
 		holdHTML = "<SPAN Style='color:#FFFF00'>" + holdHTML + "</SPAN>";
+		*/
 		
-		innerHTML += "<DIV Style='padding-bottom:3%'>"
-			+ "<SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='MenuMainRestart(event, 1, " + holdWorldDayOfWeek + "," + holdWorldEvening + ");'>"
-			+ holdHTML
+		innerHTML += "<DIV Style='padding-bottom:6%'>"
+			+ "<SPAN Style='cursor:pointer;color:#FFFFFF;' " + gBrowser.inputTypeEventHTML + "='MenuMainRestart(event, 1, " + holdWorldDayOfWeek + "," + holdWorldEvening + ");'>"
+			+ "RESTART " + holdWorldDayOfWeekCaptionLong + eveningCaption 
 			+ "</SPAN>"
 			+ "</DIV>";
 	}
-	// </RESTART MANTRA>
+	// </RESTART WEEKDAY MANTRA>
 
 	// <WEEKDAY>
 	innerHTML += "<DIV Style='padding-bottom:3%; color:#FFFF00;'>"
-		+ "<SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='MenuChallenges(event, 0);'>"
+		+ "<SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='MenuChallenges(event, 1);'>"
 		+ "WEEKDAY" + eveningCaption + " STATS"
 		+ "</SPAN>"
 		+ "</DIV>";
 	// </WEEKDAY>
 
 	// <CHALLENGES>
-	innerHTML += "<DIV Style='padding-bottom:3%; color:#FFFF00;'>"
-		+ "<SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='MenuChallenges(event, 1);'>"
-		+ eveningCaption + " CHALLENGES I"
-		+ "</SPAN>"
-		+ "</DIV>";
-
-	innerHTML += "<DIV Style='padding-bottom:6%; color:#FFFF00;'>"
-		+ "<SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='MenuChallenges(event, 2);'>"
-		+ eveningCaption + " CHALLENGES II"
-		+ "</SPAN>"
-		+ "</DIV>";
+	for (let index = 2; index < 4; index++)
+	{
+		let padding = (index == 3) ? "6%" : "3%";
+		innerHTML += "<DIV Style='padding-bottom:" + padding + "; color:#FFFF00;'>"
+			+ "<SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='MenuChallenges(event, " + index + ");'>"
+			+ mWorldModeMeta[index].caption.toUpperCase() + eveningCaption
+			+ "</SPAN>"
+			+ "</DIV>";
+	}	
+	// Challenge 5: The Climb
+	// Challenge 6: Gratuitious
 	// </CHALLENGES>
-	
-	// innerHTML += "<DIV Style='padding-bottom:3%; color:#909090;'>BEGIN \"THE CLIMB\"</DIV>";
-	// innerHTML += "<DIV Style='padding-bottom:3%; color:#909090;'>BEGIN \"GRATUITOUS\"</DIV>";
 	
 	if (configPaid > 0)
 	{
@@ -609,7 +1290,7 @@ function MenuMain(pEvent, pMenuMainPreserveWorldState = -1)
 	innerHTML += "<DIV Style='padding-bottom:3%;'><SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='MenuAbout(event);'>ABOUT HAROLD</SPAN></DIV>";
 	innerHTML += "<DIV Style='padding-bottom:6%;'><SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='MenuCredits(event);'>CREDITS</SPAN></DIV>";
 
-	innerHTML += "<DIV Style='padding-bottom:6%;'><SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='MenuQuit(event);'>QUIT</SPAN></DIV>";
+	innerHTML += "<DIV><SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='MenuQuit(event);'>QUIT</SPAN></DIV>";
 	
 	innerHTML += "</DIV>";
 
@@ -634,18 +1315,29 @@ function MenuQuit(pEvent)
 	return MenuShow(pEvent, innerHTML);
 }
 
+function MenuFinalLevelFailed2()
+{
+	CopyLevelToClipboard();
+
+	let innerHTML = ""
+		+ "HELP<BR><SPAN Style='color:#FFFFFFFF'>COPIED TO</SPAN><BR>CLIPBOARD<BR>"
+		+ "<SPAN Style='color:#FFFFFFFF'>PASTE</SPAN> BABY<BR><SPAN Style='color:#FFFFFFFF'>PASTE</SPAN>"
+		+ "";
+	return MenuShow(null, innerHTML, MenuMain);
+}
+
 function MenuFinalLevelFailed()
 {
 	SoundBuffersStop();
 	SoundBufferPlay(mSoundBufferMisc, 1, SoundBufferMiscType.soundyoublewit);   // last buffered sound
 	let innerHTML = "YOU<BR><SPAN Style='color:#FFFFFFFF'>BLEW</SPAN><BR>IT";
 	GoogleAnalytics("Completed-Fail");	
-	return MenuShow(null, innerHTML, MenuMain);
+	return MenuShow(null, innerHTML, MenuFinalLevelFailed2);
 }
 
 function MenuFinalLevelYes(pEvent)
 {
-	mWorldClick = null;
+	mWorldClick = null;   // consider removing, or relocating to worldresetnew
 	WorldResetNew();
 	if (pEvent != null)
 	{
@@ -688,6 +1380,48 @@ function MenuFinalLevel(pEvent)
 	return MenuShow(pEvent, innerHTML, MenuFinalLevelYes);
 }
 
+/*
+function MenuShareDEAD(pEvent, pStepNew, pStepOld, pTimeNew, pTimeOld, pFailCountNew, pFailCountOld)
+{
+	alert("Copied to clipboard! Paste away!");
+	
+	if (pEvent != null)
+	{
+		pEvent.preventDefault();
+		pEvent.stopPropagation();
+	}
+	
+	CopyStatsToClipboard(mWorldMode, mWorldEvening, mWorldDayOfWeek, pStepNew, pStepOld, pTimeNew, pTimeOld, pFailCountNew, pFailCountOld);	
+	return false;
+}
+*/
+
+// Preserve stats in MenuFinished for MenuFinished2
+let preserveSteps = -1;
+let preserveTime = -1;
+let preserveFail = -1;
+
+function MenuFinished2()
+{
+	// On Mobile, Clipboard only works when responding to an event (OnTouchEnd)
+	// MenuFinished comes up due to timer which is NOT good enough (no error, but nothing is copied)
+	// This extra screen ensures we're responding to an event
+	CopySuccessToClipboard(
+		mWorldMode, mWorldEvening, mWorldDayOfWeek
+		, mStatNewSteps, preserveSteps
+		, mStatNewTime, preserveTime
+		, mStatNewFail, preserveFail
+	);		
+
+	let innerHTML = ""
+		+ "TRIUMPH<BR><SPAN Style='color:#FFFFFFFF'>COPIED TO</SPAN><BR>CLIPBOARD<BR>"
+		+ "<SPAN Style='color:#FFFFFFFF'>PASTE</SPAN> BABY<BR><SPAN Style='color:#FFFFFFFF'>PASTE</SPAN>"
+		+ "";
+	return MenuShow(null, innerHTML, MenuMain);
+	// "<DIV>c<SPAN Style='color:#FFFF00'>o</SPAN>p<SPAN Style='color:#FFFF00'>i</SPAN>e<SPAN Style='color:#FFFF00'>d</SPAN> t<SPAN Style='color:#FFFF00'>o</SPAN> c<SPAN Style='color:#FFFF00'>l</SPAN>i<SPAN Style='color:#FFFF00'>p</SPAN>b<SPAN Style='color:#FFFF00'>o</SPAN>a<SPAN Style='color:#FFFF00'>r</SPAN>d</DIV>"
+	// + "<DIV><SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='" + menuShare + "'>s<SPAN Style='color:#FFFF00'>h</SPAN>a<SPAN Style='color:#FFFF00'>r</SPAN>e</SPAN></DIV>"
+}
+
 function MenuFinished(pEvent)
 {
 	// Don't stop Sound or Music, keep Happy Hollows GOING!
@@ -695,19 +1429,20 @@ function MenuFinished(pEvent)
 	// FIRST - first time completing "the bar has been set"
 	// YAWN/FAIL - you were worse in every category
 	// PROGRESS/CONGRATS
-
-	// <MESSAGE>
+	
+	// <MESSAGE>	
 	let innerHTML = "";
 	if (mUserData.weekday[mWorldDayOfWeek][mWorldEvening].steps == -1)
 	{
-		// all the userdata -1 values will be updated
 		innerHTML = ""
 			+ "<DIV Style='color:#FFFF00FF;padding-bottom:3%;'>THE <SPAN Style='color:#FFFFFFFF;'>BAR</SPAN><BR><SPAN Style='color:#FFFFFFFF;'>IS</SPAN> SET</DIV>"
-			+ "<DIV Style='color:#FFFFFFFF; font-size:40%; line-height:100%; textShadow75;'><DIV Class='divtable2'>"
-			+ "<DIV><DIV>STEPS</DIV><DIV>" + mStatNewSteps.toLocaleString() + "</DIV></DIV>"
-			+ "<DIV><DIV>TIME</DIV><DIV>" + FormatTime(mStatNewTime) + "</DIV></DIV>"
-			+ "<DIV><DIV>FAILED</DIV><DIV>" + mStatNewFail.toLocaleString() + "</DIV></DIV>"
-			+ "</DIV></DIV>";
+			+ "<DIV Style='color:#FFFFFFFF; font-size:40%; line-height:100%; textShadow75;'>"
+				+ "<DIV Class='divtable2'>"
+				+ "<DIV><DIV>STEPS</DIV><DIV>" + mStatNewSteps.toLocaleString() + "</DIV></DIV>"
+				+ "<DIV><DIV>TIME</DIV><DIV>" + FormatTime(mStatNewTime) + "</DIV></DIV>"
+				+ "<DIV><DIV>FAILED</DIV><DIV>" + mStatNewFail.toLocaleString() + "</DIV></DIV>"
+				+ "</DIV>"
+			+ "</DIV>";				
 	}
 	else
 	{
@@ -778,46 +1513,73 @@ function MenuFinished(pEvent)
 			&& (mStatNewFail == mUserData.weekday[mWorldDayOfWeek][mWorldEvening].fail)
 		)
 		{
+			// stuck / stuck in a moment
 			titleHTML += "<DIV Style='color:#FFFF00FF;padding-bottom:3%;'><SPAN Style='color:#FFFFFFFF;'>A PERFECT</SPAN><BR>MATCH</DIV>";
 		}
 		else
 		{
+			// partial success 
 			titleHTML += "<DIV Style='padding-bottom:3%;'><SPAN Style='color:#FFFFFFFF;'>success yet</SPAN><BR><SPAN Style='color:#FF0000FF;'>failure</SPAN></DIV>";
 		}
 		
 		innerHTML = titleHTML
-			+ "<DIV Style='color:#FFFFFFFF; font-size:40%; line-height:100%; textShadow75;'><DIV Class='divtable2'>"
-			+ stepHTML
-			+ timeHTML
-			+ failHTML
-			+ "</DIV></DIV>";
+			+ "<DIV Style='color:#FFFFFFFF; font-size:40%; line-height:100%; textShadow75;'>"
+			+ "<DIV Class='divtable2'>"
+				+ stepHTML
+				+ timeHTML
+				+ failHTML
+			+ "</DIV>"
+			+ "</DIV>";
 	}
 	// </MESSAGE>
+
+	preserveSteps = mUserData.weekday[mWorldDayOfWeek][mWorldEvening].steps;
+	preserveTime = mUserData.weekday[mWorldDayOfWeek][mWorldEvening].time;
+	preserveFail = mUserData.weekday[mWorldDayOfWeek][mWorldEvening].fail;
 
 	// <SAVE>
 	let save = false;
 	let stepsValue = mUserData.weekday[mWorldDayOfWeek][mWorldEvening].steps;
 	if ((stepsValue == -1) || (mStatNewSteps < stepsValue)) { stepsValue = mStatNewSteps; save = true; }
-	mStatNewSteps = 0;
 
 	let timeValue = mUserData.weekday[mWorldDayOfWeek][mWorldEvening].time;
 	if ((timeValue == -1) || (mStatNewTime < timeValue)) { timeValue = mStatNewTime; save = true; }
-	mStatNewTime = 0;
 
 	let failValue = mUserData.weekday[mWorldDayOfWeek][mWorldEvening].fail;
 	if ((failValue == -1) || (mStatNewFail < failValue)) { failValue = mStatNewFail; save = true; }
-	mStatNewFail = 0;
 
 	if (save) { mUserData.SaveCurrentDay(stepsValue, timeValue, failValue); }
 	// </SAVE>
-
+	
 	GoogleAnalytics("Completed-Success");
 
-	return MenuShow(pEvent, innerHTML, MenuMain);
+	// note: mStateNewSteps/Time/Fail needed by MenuFinished2 clipboard
+	return MenuShow(pEvent, innerHTML, MenuFinished2);
 }
 
-function MenuChallenges(pEvent, pSet = 0, pToggle = false)
+function MenuChallengesShare(pEvent, pWorldMode, pWorldEvening)
 {
+	CopyStatsToClipboard(pWorldMode, pWorldEvening);
+
+	// do NOT use alert on mobile, brings up bizarre "done" button at bottom
+	document.getElementById("MenuChallengesShare").innerHTML = ""
+		+ "<SPAN Style='color:#FFFF00'>c</SPAN>l<SPAN Style='color:#FFFF00'>i</SPAN>p"
+		+ "<SPAN Style='color:#FFFF00'>b</SPAN>o<SPAN Style='color:#FFFF00'>a</SPAN>r<SPAN Style='color:#FFFF00'>d</SPAN>e"
+		+ "<SPAN Style='color:#FFFF00'>d</SPAN>!"
+		+ "";
+	
+	if (pEvent != null)
+	{
+		pEvent.preventDefault();
+		pEvent.stopPropagation();
+	}
+	return false;	
+}
+
+function MenuChallenges(pEvent, pWorldMode = 1, pToggle = false)
+{
+	console.assert(pWorldMode > 0, "MenuChallenges Error: Called for Narrative: pWorldMode = 0");
+
 	let holdDayEvening = GetDayEvening();
 	if (configPaid == 0) { holdDayEvening[1] = 0; }
 	let pWorldEvening = holdDayEvening[1];
@@ -828,31 +1590,27 @@ function MenuChallenges(pEvent, pSet = 0, pToggle = false)
 	}
 
 	// <TITLE>
-	// pSet = 0: Weekdays   1:Challenge1
+	// pWorldMode = 0: Weekdays   1+:Challenges
 	let innerHTML = "";
 		
 	innerHTML += "<DIV Style='text-align:center; font-size:50%; line-height:100%; textShadow75; padding-bottom:3%; cursor:pointer; color:#FFFF00FF;'>"
-	if (configDebug > 0)
+	if (pWorldMode == 1)
 	{
-		if (pSet == 0) { innerHTML += "WEEKDAY"; } else { innerHTML += "CHALLENGES"; }
-		if (pWorldEvening == 1) { innerHTML += " EVENING"; } else { innerHTML += " DAYTIME"; }
-		innerHTML += "<BR>DEBUG CHOOSE";
-	}
-	else if ((configPaid > 0) && (pWorldEvening == 1))
-	{
-		if (pSet == 0) { innerHTML += "WEEKDAY EVENING<BR>STATS"; } else { innerHTML += "EVENING<BR>CHALLENGES"; }
+		innerHTML += ((pWorldEvening == 1) && ((configPaid > 0) || (configDebug > 0))) ? "WEEKDAY EVENING STATS" : "WEEKDAY STATS";
 	}
 	else
 	{
-		if (pSet == 0) { innerHTML += "WEEKDAY STATS"; } else { innerHTML += "CHALLENGES"; }
-	}	
+		innerHTML += mWorldModeMeta[pWorldMode].caption.toUpperCase();
+		if ((pWorldEvening == 1) && ((configPaid > 0) || (configDebug > 0))) { innerHTML += "<BR>EVENING"; }   // Can't get too wide or fonts shrink (harder to tap)
+	}
+	if (configDebug > 0) { innerHTML += "<BR>DEBUG CHOOSE"; }
 	innerHTML += "</DIV>";
 	// </TITLE>
 
 	// <TOTAL>
 	let success = true;
 	let totalSteps = 0, totalTime = 0, totalFail = 0;
-	for (let index = pSet * 7; index < pSet * 7 + 7; index++)
+	for (let index = (pWorldMode - 1) * 7; index < (pWorldMode - 1) * 7 + 7; index++)
 	{
 		if (mUserData.weekday[index][pWorldEvening].steps == -1)
 		{
@@ -877,21 +1635,24 @@ function MenuChallenges(pEvent, pSet = 0, pToggle = false)
 	// </TOTAL>
 
 	// <DAYS>
-	innerHTML += "<DIV Style='font-size:40%; line-height:100%; textShadow75;'><DIV Class='divtable2'>";
-	for (let index = pSet * 7; index < pSet * 7 + 7; index++)
+	innerHTML += "<DIV Style='font-size:40%; line-height:100%; textShadow75;'>";
+	innerHTML += "<DIV Class='divtable2'>";
+	for (let index = (pWorldMode - 1) * 7; index < (pWorldMode - 1) * 7 + 7; index++)
 	{
+		// Column 1: Name / Weekday
 		// Players CAN'T click Weekdays, they CAN click Challenges
-		if ((pSet == 0) && (configDebug == 0))
+		if ((pWorldMode == 1) && (configDebug == 0))
 		{
 			innerHTML += "<DIV Style='color:#FFFFFFFF;'>"
 		}
 		else
 		{
 			innerHTML += "<DIV Style='color:#FFFFFFFF;cursor:pointer;'"
-				+ " " + gBrowser.inputTypeEventHTML + "='MenuMainRestart(event, 1, " + index + ", " + pWorldEvening + ");'"
+				+ " " + gBrowser.inputTypeEventHTML + "='MenuMainRestart(event, " + pWorldMode + ", " + index + ", " + pWorldEvening + ");'"
 				+ " >";
 		}
 		
+		// 3 Columns:   2:Steps   3:Time   4:Fail
 		innerHTML += "<DIV>" + mUserData.weekday[index][pWorldEvening].caption.toUpperCase() + "</DIV>";
 		
 			if (mUserData.weekday[index][pWorldEvening].steps == -1)
@@ -907,15 +1668,29 @@ function MenuChallenges(pEvent, pSet = 0, pToggle = false)
 		
 		innerHTML += "</DIV>"
 	}
-	innerHTML += "</DIV></DIV>";   // Extra BRs to provide some padding
+	innerHTML += "</DIV>";
+	
+	let menuChallengesShare = "MenuChallengesShare(event"
+		+ "," + pWorldMode
+		+ "," + pWorldEvening
+		+ ");"
+		
+	innerHTML += "<DIV Style='color:#FFFFFFFF;'><SPAN Id='MenuChallengesShare' Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='" + menuChallengesShare + "'>"
+		+ "s<SPAN Style='color:#FFFF00'>h</SPAN>a<SPAN Style='color:#FFFF00'>r</SPAN>e"
+		+ "</SPAN></DIV>"
+		+ "";
+	
+	innerHTML += "</DIV>";
 	// </DAYS>
 
 	if ((!pToggle) && (configDebug > 0))
 	{
-		return MenuShow(pEvent, innerHTML, function () { MenuChallenges(null, pSet, true); } );	
+		// Switch to Day/Evening BEFORE (returning to Main Menu)
+		return MenuShow(pEvent, innerHTML, function () { MenuChallenges(null, pWorldMode, true); } );	
 	}
 	else
 	{
+		// Return to Main Menu
 		return MenuShow(pEvent, innerHTML, MenuMain);
 	}
 }
@@ -1181,7 +1956,7 @@ function MenuInstructions(pEvent)
 function MenuDayStart()
 {
 	// Assumptions
-	// mWorldMode == 1, mWorldDayOfWeek and mWorldEvening have been set
+	// mWorldMode > 0, mWorldDayOfWeek and mWorldEvening have been set
 	// Called by "START" and by "MenuMain:Restart Mantra"
 
 	/*
@@ -1251,6 +2026,13 @@ function MenuDayStart()
 // <USERDATA>
 // stores score for both Challenges and Weekday (a specialized challenge)
 // ------------------------------------------------------------------------------------------------------
+var mWorldModeMeta = [];
+mWorldModeMeta[0] = {}; mWorldModeMeta[0].caption = "Frank's Story";
+mWorldModeMeta[1] = {}; mWorldModeMeta[1].caption = "Weekdays";
+mWorldModeMeta[2] = {}; mWorldModeMeta[2].caption = "Challenge I: Unique";
+mWorldModeMeta[3] = {}; mWorldModeMeta[3].caption = "Challenge II: Samey";
+mWorldModeMeta[4] = {}; mWorldModeMeta[4].caption = "Challenge III: Extreme";
+
 function UserData()
 {
 	// Used when playing Weekdays (not Narrative)
@@ -1261,7 +2043,7 @@ function UserData()
 		// MUST ONLY BE CALLED BY WorldChange. mWorldEvening MUST stay in sync with SaveCurrentDay
 		// otherwise could play Daytime and save Evening
 		let d = null;
-		for (let index = 0; index < 21; index++)   // 0=Sunday, 6=Sat
+		for (let index = 0; index < 28; index++)   // 0=Sunday, 6=Sat
 		{
 			this.weekday[index] = new Array(2);   // short form doesn't allow length (which might not do anything)
 
@@ -1294,44 +2076,100 @@ function UserData()
 					// Level0007.json - 0013.json
 					case 7:
 					{
-						this.weekday[index][evening].caption = "EZ";
-						this.weekday[index][evening].captionLong = "Easy Living";
+						if (evening == 0)
+						{
+							this.weekday[index][evening].caption = "EZ";
+							this.weekday[index][evening].captionLong = "Easy Living";
+						}
+						else
+						{
+							this.weekday[index][evening].caption = "Weezy";
+							this.weekday[index][evening].captionLong = "Weezy Wiving";
+						}
 						break;
 					}
 					case 8:
 					{
-						this.weekday[index][evening].caption = "Long";
-						this.weekday[index][evening].captionLong = "Lonnng";
+						if (evening == 0)
+						{
+							this.weekday[index][evening].caption = "Long";
+							this.weekday[index][evening].captionLong = "Lonnng";
+						}
+						else
+						{
+							this.weekday[index][evening].caption = "Bolong";
+							this.weekday[index][evening].captionLong = "Bolonnnnnnng";
+						}
 						break;
 					}
 					case 9:
 					{
-						this.weekday[index][evening].caption = "Paths";
-						this.weekday[index][evening].captionLong = "Paths";
+						if (evening == 0)
+						{
+							this.weekday[index][evening].caption = "Paths";
+							this.weekday[index][evening].captionLong = "Paths";
+						}
+						else
+						{
+							this.weekday[index][evening].caption = "Ack Ack";
+							this.weekday[index][evening].captionLong = "Ack Ack Ack";
+						}
 						break;
 					}
 					case 10:
 					{
-						this.weekday[index][evening].caption = "Limit";
-						this.weekday[index][evening].captionLong = "Limited Options";
+						if (evening == 0)
+						{
+							this.weekday[index][evening].caption = "Limit";
+							this.weekday[index][evening].captionLong = "Limited Options";
+						}
+						else
+						{
+							this.weekday[index][evening].caption = "Severely";
+							this.weekday[index][evening].captionLong = "Severely Limited";
+						}						
 						break;
 					}
 					case 11:
 					{
-						this.weekday[index][evening].caption = "Abound";
-						this.weekday[index][evening].captionLong = "Abundance";
+						if (evening == 0)
+						{
+							this.weekday[index][evening].caption = "Abound";
+							this.weekday[index][evening].captionLong = "Abundance";
+						}
+						else
+						{
+							this.weekday[index][evening].caption = "Pound";
+							this.weekday[index][evening].captionLong = "Pound Cake";
+						}
 						break;
 					}
 					case 12:
 					{
-						this.weekday[index][evening].caption = "Mirror";
-						this.weekday[index][evening].captionLong = "Mirrored";
+						if (evening == 0)
+						{
+							this.weekday[index][evening].caption = "Mirror";
+							this.weekday[index][evening].captionLong = "Mirrored";						
+						}
+						else
+						{
+							this.weekday[index][evening].caption = "Cracked";
+							this.weekday[index][evening].captionLong = "Mirror In The Bathroom";
+						}
 						break;
 					}
 					case 13:
 					{
-						this.weekday[index][evening].caption = "FunBags";
-						this.weekday[index][evening].captionLong = "Fun Bags";
+						if (evening == 0)
+						{
+							this.weekday[index][evening].caption = "FunBags";
+							this.weekday[index][evening].captionLong = "Fun Bags";
+						}
+						else
+						{
+							this.weekday[index][evening].caption = "FunFunBags";
+							this.weekday[index][evening].captionLong = "Fun Bags O' Fun";
+						}
 						break;
 					}
 					// </CHALLENGE I>
@@ -1339,47 +2177,105 @@ function UserData()
 
 					// <CHALLENGE II>
 					// Level0014.json - 0021.json
+					// You Are Going To     Love These levels
+					// I'm Not Sure  You'll Like These Levels
 					case 14:
 					{
 						// Level07.json
-						this.weekday[index][evening].caption = "You";
-						this.weekday[index][evening].captionLong = "You";
+						if (evening == 0)
+						{
+							this.weekday[index][evening].caption = "You";
+							this.weekday[index][evening].captionLong = "You";
+						}
+						else
+						{
+							this.weekday[index][evening].caption = "I'm";
+							this.weekday[index][evening].captionLong = "I am";
+						}
 						break;
 					}
 					case 15:
 					{
-						this.weekday[index][evening].caption = "Are";
-						this.weekday[index][evening].captionLong = "Are";
+						if (evening == 0)
+						{
+							this.weekday[index][evening].caption = "Are";
+							this.weekday[index][evening].captionLong = "Are";
+						}
+						else
+						{
+							this.weekday[index][evening].caption = "Not";
+							this.weekday[index][evening].captionLong = "Not";
+						}
 						break;
 					}
 					case 16:
 					{
-						this.weekday[index][evening].caption = "Going";
-						this.weekday[index][evening].captionLong = "Going";
+						if (evening == 0)
+						{
+							this.weekday[index][evening].caption = "Going";
+							this.weekday[index][evening].captionLong = "Going";
+						}
+						else
+						{
+							this.weekday[index][evening].caption = "Sure";
+							this.weekday[index][evening].captionLong = "Sure";
+						}
 						break;
 					}
 					case 17:
 					{
-						this.weekday[index][evening].caption = "To";
-						this.weekday[index][evening].captionLong = "To";
+						if (evening == 0)
+						{					
+							this.weekday[index][evening].caption = "To";
+							this.weekday[index][evening].captionLong = "To";
+						}
+						else
+						{
+							this.weekday[index][evening].caption = "You'll";
+							this.weekday[index][evening].captionLong = "You Will";
+						}						
 						break;
 					}
 					case 18:
 					{
-						this.weekday[index][evening].caption = "Love";
-						this.weekday[index][evening].captionLong = "Love";
+						if (evening == 0)
+						{
+							this.weekday[index][evening].caption = "Love";
+							this.weekday[index][evening].captionLong = "Love";
+						}
+						else
+						{
+							this.weekday[index][evening].caption = "Like";
+							this.weekday[index][evening].captionLong = "Like";
+						}
 						break;
 					}
 					case 19:
 					{
-						this.weekday[index][evening].caption = "These";
-						this.weekday[index][evening].captionLong = "These";
+						if (evening == 0)
+						{
+							this.weekday[index][evening].caption = "These";
+							this.weekday[index][evening].captionLong = "These";
+						}
+						else
+						{
+							this.weekday[index][evening].caption = "Theze";
+							this.weekday[index][evening].captionLong = "Theze";
+						}
 						break;
 					}
 					case 20:
 					{
-						this.weekday[index][evening].caption = "Levels";
-						this.weekday[index][evening].captionLong = "Levels";
+						if (evening == 0)
+						{
+							this.weekday[index][evening].caption = "Levels";
+							this.weekday[index][evening].captionLong = "Levels";
+						}
+						else
+						{
+							this.weekday[index][evening].caption = "Devils";
+							this.weekday[index][evening].captionLong = "Devils";
+						}
 						break;
 					}
 					// </CHALLENGE II>
@@ -1387,11 +2283,26 @@ function UserData()
 					}
 				}
 
+				this.weekday[index][evening].steps = -1;
+				this.weekday[index][evening].time = -1; 
+				this.weekday[index][evening].fail = -1;
+
 				// UserData0D0=Day Sunday   UserData0D6=Day Saturday   UserData1D1=Evening Monday			
-				let preface = "UserData" + evening + "D" + index;
+				let holdAll = getCookie("UserData" + evening + "D" + index, "");
+				if (holdAll != "")
+				{
+					let pieces = holdAll.split(",");
+					this.weekday[index][evening].steps = parseInt(pieces[0]);
+					this.weekday[index][evening].time = parseInt(pieces[1]); 
+					this.weekday[index][evening].fail = parseInt(pieces[2]);
+				}
+				
+				
+				/*
 				this.weekday[index][evening].steps = parseInt(getCookie(preface + "Steps", -1));
 				this.weekday[index][evening].time = parseInt(getCookie(preface + "Time", -1));
 				this.weekday[index][evening].fail = parseInt(getCookie(preface + "Fail", -1));
+				*/
 			}
 		}		
 	}
@@ -1403,10 +2314,15 @@ function UserData()
 		this.weekday[mWorldDayOfWeek][mWorldEvening].fail = pFail;
 
 		// UserData0D0=Day Sunday   UserData0D6=Day Saturday   UserData1D1=Evening Monday			
-		let preface = "UserData" + mWorldEvening + "D" + mWorldDayOfWeek;
+		setCookie(
+			"UserData" + mWorldEvening + "D" + mWorldDayOfWeek
+			, "" + this.weekday[mWorldDayOfWeek][mWorldEvening].steps + "," + this.weekday[mWorldDayOfWeek][mWorldEvening].time + "," + this.weekday[mWorldDayOfWeek][mWorldEvening].fail
+		);
+		/*
 		setCookie(preface + "Steps", this.weekday[mWorldDayOfWeek][mWorldEvening].steps);
 		setCookie(preface + "Time", this.weekday[mWorldDayOfWeek][mWorldEvening].time);
 		setCookie(preface + "Fail", this.weekday[mWorldDayOfWeek][mWorldEvening].fail);
+		*/
 	}
 }
 var mUserData = new UserData();
@@ -1414,7 +2330,9 @@ var mUserData = new UserData();
 // ------------------------------------------------------------------------------------------------------
 // <START>
 // ------------------------------------------------------------------------------------------------------
-var mWorldMode = 1;  // 0:Narrative (Original)   1:DayOfWeek (Monday - Sunday, mUserData)
+var mWorldMode = 1;  // 0:Narrative (Original)   1:DayOfWeek (Monday - Sunday, mUserData)   2=Unique Challenges   3=Samey Challengers   4=Extreme Challenges
+// 0 is UNIQUE, 1 -5 are handled the same way
+
 var mWorldDayOfWeek = -1;   // maps to Javascript:getDay 0:Sun 1:Mon .. 6:Sa (set in Load)
 var mWorldEvening = -1;   // 0:Daytime 1:Evening
 
@@ -1506,6 +2424,12 @@ if (false)
 
 mLevels =
 [
+[1,1,0,0,2,2,0,5,5,0,2   ,10,"3333542225503453540503401"   ,12,"3333542252504353540503401"   , [18,20]]
+, [1,8,0,0,2,18,0,4,6,0,3   ,9,"012233544524450405340340"   ,15,"033534524235340501520420"   , [14,20]]
+
+// Extremely Easy
+, [1,3,1,0,2,3,0,4,3,0,0   ,3,"500033350122"   ,6,"500035350341"   , [3]]
+
 ];
 
 }
@@ -1590,7 +2514,7 @@ console.log("DONE");
 			if (mLevels[index][2] > 0) { hold += " Extreme"; }
 			hold += "\n";
 			if (count > 1) { hold += ", "; }
-			hold += JSON.stringify(mLevels[index]) + "\n";
+			hold += JSON.stringify(mLevels[index]) + "\n\n";
 		}
 		hold += "]\n";
 		
@@ -1603,7 +2527,7 @@ console.log("DONE");
 	// [3] indicates whether we've played this level this session
 	for (let index = 0; index < mLevels.length; index++) { mLevels[index][3] = 0; }
 
-	if (mWorldMode == 1) { mWeekdayLevelsRemaining = mLevels.length; } else { mWeekdayLevelsRemaining = -1; }
+	if (mWorldMode > 0) { mWeekdayLevelsRemaining = mLevels.length; } else { mWeekdayLevelsRemaining = -1; }
 
 	}).catch(function(err) { alert("Sorry! There's a problem retrieving levels '" + pURL + "'. Try refreshing. Technical Details\n" + err); });
 }
@@ -4094,6 +5018,22 @@ function MusicPlay(pSrc, pVolume = 1.0, pLoop = true)
 	}
 }
 
+function GetSongIndex()
+{
+	let songIndex = -1;
+	if (mWorldDayOfWeek < 7)
+	{
+		if (mWorldDayOfWeek == 0) { songIndex = 0; }
+		else if ((mWorldDayOfWeek == 1) || (mWorldDayOfWeek == 4)) { songIndex = 1; }
+		else if ((mWorldDayOfWeek == 2) || (mWorldDayOfWeek == 5)) { songIndex = 2; }
+		else if ((mWorldDayOfWeek == 3) || (mWorldDayOfWeek == 6)) { songIndex = 3; }
+	}
+	else
+	{
+		songIndex = (mWorldDayOfWeek % 4); // Math.floor(Math.random() * 4);
+	}
+	return songIndex;
+}
 
 function MusicSelect()
 {
@@ -4102,23 +5042,11 @@ function MusicSelect()
 		// Something must always be playing ... decide what!
 		if (mWorldState == 0)
 		{
-			MusicPlay("music-song4-construction.mp3", 0);   // DEBUGJIM. Song >appears< to keep browser window alive when focus lost.
+			MusicPlay("music-song4-construction.mp3", 0.01);   // DEBUGJIM. Song >appears< to keep browser window alive when focus lost.
 		}
-		else if ( (mWorldMode == 1) && (mWeekdayLevelsRemaining == 1) )
+		else if ( (mWorldMode > 0) && (mWeekdayLevelsRemaining == 1) )
 		{
-			let songIndex = -1;
-			if (mWorldDayOfWeek < 7)
-			{
-				if (mWorldDayOfWeek == 0) { songIndex = 0; }
-				else if ((mWorldDayOfWeek == 1) || (mWorldDayOfWeek == 4)) { songIndex = 1; }
-				else if ((mWorldDayOfWeek == 2) || (mWorldDayOfWeek == 5)) { songIndex = 2; }
-				else if ((mWorldDayOfWeek == 3) || (mWorldDayOfWeek == 6)) { songIndex = 3; }
-			}
-			else
-			{
-				songIndex = (mWorldDayOfWeek % 4); // Math.floor(Math.random() * 4);
-			}
-			switch (songIndex)
+			switch (GetSongIndex())
 			{
 			case 0: MusicPlay("music-song9-silver.mp3", 0.3, false); break;
 			case 1: MusicPlay("music-song5-concordia.mp3", 0.75, false); break;
@@ -4152,7 +5080,8 @@ function MusicSelect()
 		}
 		else if (mLevelType == LevelType.Tricky)
 		{
-			MusicPlay("music-song2-nonsense.mp3", 0.4, parseInt(Math.random() * 30));
+			MusicPlay("music-song2-nonsense.mp3", 0.4, true);
+			mMusic.currentTime = parseInt(Math.random() * 30);
 		}
 		else
 		{
@@ -4164,11 +5093,13 @@ function MusicSelect()
 			{
 				if (Math.random() < 0.5)
 				{
-					MusicPlay("music-song3-547545-scotland.mp3", 0.4, parseInt(Math.random() * 30));
+					MusicPlay("music-song3-547545-scotland.mp3", 0.4, true);
+					mMusic.currentTime = parseInt(Math.random() * 30);
 				}
 				else
 				{
-					MusicPlay("music-song6-345948-new-york.mp3", 0.4, parseInt(Math.random() * 30));					
+					MusicPlay("music-song6-345948-new-york.mp3", 0.4, true);					
+					mMusic.currentTime = parseInt(Math.random() * 30);
 				}
 			}
 			else
@@ -4692,6 +5623,29 @@ this.RemovePlayer = function(pPlayer)
 
 this.Update = function()
 {
+	function ColourTile(pXYIndex, pTempTime = 500)
+	{
+		if (mPlayFieldDivs[pXYIndex].finishTileState == 0)
+		{
+			// Pink leaves pink trails
+			if (player.type > 0)
+			{
+				TileSetColor(mPlayFieldDivs[pXYIndex], 255, 100, 255, 2);
+				TileSetColorTemp(mPlayFieldDivs[pXYIndex], pTempTime, 255, 100, 255);
+			}
+			// Regular leaves yellow (considering black)
+			else
+			{
+				let tile = mPlayFieldDivs[pXYIndex];
+				if (!((tile.colorR = 255) && (tile.colorG == 100) && (tile.colorB == 255)))
+				{
+					TileSetColor(tile, 255, 255, 100, 2);
+					TileSetColorTemp(tile, pTempTime, 255, 255, 100);
+				}
+			}
+		}
+	}
+
 	if (this.freezeTime != 0)
 	{
 		if (Date.now() > this.freezeTime) { this.freezeTime = 0; }
@@ -4900,26 +5854,7 @@ this.Update = function()
 										}
 										else
 										{
-											if (mPlayFieldDivs[player.xyIndex].finishTileState == 0)
-											{
-												// Pink leaves pink trails
-												if (player.type > 0)
-												{
-													TileSetColor(mPlayFieldDivs[player.xyIndex], 255, 100, 255, 2);
-													TileSetColorTemp(mPlayFieldDivs[player.xyIndex], 750, 255, 100, 255);
-												}
-												// Regular leaves yellow (considering black)
-												else
-												{
-													let tile = mPlayFieldDivs[player.xyIndex];
-													if (!((tile.colorR = 255) && (tile.colorG == 100) && (tile.colorB == 255)))
-													{
-														TileSetColor(tile, 255, 255, 100, 2);
-														TileSetColorTemp(tile, 750, 255, 255, 100);
-													}
-												}
-											}
-
+											ColourTile(player.xyIndex);
 											player.x += dirX;
 											player.y += dirY;
 											player.xyIndex = player.y * mTileXCount + player.x;
@@ -4986,6 +5921,7 @@ this.Update = function()
 											|| ( (player.type == 1) && (player.solveIndex <= 1) && (mSolvedPlayfield[player.solveIndex][player.xyIndexOld] == 1) )
 										)
 										{
+											ColourTile(player.xyIndex, 1000);
 											player.FaceChange(2);
 											
 											// If multiple players end up on this spot, GROW it.
@@ -5135,7 +6071,7 @@ function GrowTiles()
 	var halfTileXYCount = -1;
 	if (mWorldMode > 0)
 	{
-		halfTileXYCount = (mWorldEvening > 0) ? 28 : 9;
+		halfTileXYCount = (mWorldEvening > 0) ? 20 : 10;
 	}
 	else if (mLevelType == LevelType.Bonus)
 	{
@@ -5308,7 +6244,7 @@ function RestartUpdate()
 		&&
 		(
 			// Never shows on Weekdays
-			(mWorldMode == 1)
+			(mWorldMode > 0)
 
 			// If the hole has been cutoff from the playfield, shrink back to oblivion	
 			||
@@ -5420,7 +6356,7 @@ function BackgroundUpdate()
 			lerp = 0.1;			
 		}
 	}
-	else if (mWorldMode == 1)
+	else if (mWorldMode > 0)
 	{
 		r = 64; g = 64; b = 96;
 		lerp = 0.05;
@@ -5689,7 +6625,7 @@ function WordUpdateGrow()
 {
 	const limit = 40.0;
 	mGrowWordTileTotal += 0.03;
-	if (mGrowWordTileTotal > limit) { mGrowWordTileTotal = limit; }
+	if (mGrowWordTileTotal > limit) { mGrowWordTileTotal = limit * 0.8; }
 	mWord.fontRatio = 0.25 * (1.0 + mGrowWordTileTotal * 0.12);
 	mWord.jimColor = document.body.style.backgroundColor;
 	mWord.textShadowColor = "#FFFFFF";	
@@ -5853,8 +6789,17 @@ function WordUpdateUseTheForce()
 
 let mWeekdayGrowFlag = false;
 function WordUpdateBackgroundWeekday()
-{
-	if (mGrowCount > 0)
+{	
+	function ScrambleString(pText)
+	{
+		// https://the0x00.dev/javascript/How-to-scramble-a-string-in-Javascript/
+		// ONLY plain text - can't handle HTML or meta characters
+		const chars = pText.split("");
+		chars.sort(() => 0.5 - Math.random());
+		return chars.join("");	
+	}
+	
+	if ((mGrowCount > 0) && (mState != 1))
 	{
 		WordUpdateGrowFinal();
 	}
@@ -5883,8 +6828,10 @@ function WordUpdateBackgroundWeekday()
 				if (mTileTotal == 2)
 				{
 					let holdHTML = "";
-					switch (mWorldDayOfWeek)
+					if (mWorldDayOfWeek < 7)
 					{
+						switch (mWorldDayOfWeek)
+						{
 						case 0: { holdHTML = "HAPPY<BR>HOLLOWS<BR>SUNDAY<BR>LOVING"; break; }
 						case 1: { holdHTML = "HAPPY<BR>HOLLOWS<BR>KILLING<BR>MONDAYS"; break; }
 						case 2: { holdHTML = "HAPPY<BR>HOLLOWS<BR>TOTALLY<BR>TUESDAY"; break; }
@@ -5892,31 +6839,30 @@ function WordUpdateBackgroundWeekday()
 						case 4: { holdHTML = "HAPPY<BR>HOLLOWS<BR>THURTTING<BR>THURSDAYS"; break; }
 						case 5: { holdHTML = "HAPPY<BR>HOLLOWS<BR>FREAKING<BR>FRIDAYS"; break; }
 						case 6: { holdHTML = "HAPPY<BR>HOLLOWS<BR>SIZZLING<BR>SATURDAY"; break; }
+						}
+					}
+					else
+					{
+						holdHTML = ScrambleString("HAPPY") + "<BR>"
+							+ ScrambleString("HOLLOWS") + "<BR>"
+							+ ScrambleString("HAPPY") + "<BR>"
+							+ ScrambleString("HOLLOWS")
+							+ "";
 					}
 					WordSet(holdHTML, 0.01, 1, 1, "#FFFFFF", "#00FFFF");
 				}
 				else
 				{
 					let innerHTML = "";
-					if (mWorldDayOfWeek == 0)
+					switch (GetSongIndex())
 					{
-						innerHTML = "Artist: The Happy Hollows<BR>Song: Silver<BR>Album: Spells<BR>2009";
-					} 
-					else if ( (mWorldDayOfWeek == 1) || (mWorldDayOfWeek == 4) )
-					{
-						innerHTML = "Artist: The Happy Hollows<BR>Song: Concordia<BR>Album: Concordia<BR>2017";
-					} 
-					else if ( (mWorldDayOfWeek == 2) || (mWorldDayOfWeek == 5) )
-					{
-						innerHTML = "Artist: The Happy Hollows<BR>Song: Chop Lifter<BR>Album: Amethyst<BR>2013";
+					case 0: innerHTML = "Artist: The Happy Hollows<BR>Song: Silver<BR>Album: Spells<BR>2009"; break;
+					case 1: innerHTML = "Artist: The Happy Hollows<BR>Song: Concordia<BR>Album: Concordia<BR>2017"; break;
+					case 2: innerHTML = "Artist: The Happy Hollows<BR>Song: Chop Lifter<BR>Album: Amethyst<BR>2013"; break;
+					case 3: innerHTML = "Artist: The Happy Hollows<BR>Song: Endless<BR>Album: Amethyst<BR>2013"; break;
 					}
-					else if ( (mWorldDayOfWeek == 3) || (mWorldDayOfWeek == 6) )
-					{
-						innerHTML = "Artist: The Happy Hollows<BR>Song: Endless<BR>Album: Amethyst<BR>2013";
-					}
-
 					if (mWord.innerHTML != innerHTML) { WordSet(innerHTML, 0.0, 1, 1, "#FFFFFF", "#000000"); }
-				}			
+				}
 			}
 			else
 			{
@@ -5924,7 +6870,7 @@ function WordUpdateBackgroundWeekday()
 				mWeekdayGrowFlag = true;
 				WordSet((mTileTotal - 1) + "", 0.0, 1, 1, "#000000", "#FFFFFF");
 				const limit = 40.0;
-				if ( (mTileTotal < 11) || (mGrowWordTileTotal > limit * 0.9) ) { mGrowWordTileTotal = limit * 0.75; }
+				if ( (mTileTotal < 11) && (mGrowWordTileTotal < limit * 0.8) ) { mGrowWordTileTotal = limit * 0.8; }
 			}
 		}
 		
@@ -5950,7 +6896,7 @@ function WordSet(pInnerHTML, pShakeRatio, pZIndex, pFontRatio, pJimColor, pTextS
 }
 
 function WordUpdateBackground()
-{
+{	
 	/*
 	if (mState == 0)
 	{
@@ -7106,8 +8052,11 @@ function TilesUpdate()
 		// </PINK HALFWAY>
 		*/
 
+
+
 		// <WEEKDAY LAST LEVEL BUBBLING>
-		else if ( (mWorldMode == 1) && (mWeekdayLevelsRemaining == 1) && (mGrowCount == 0) )
+		// original, random and unpredictable
+		if ( (mWorldMode > 0) && (mWeekdayLevelsRemaining == 1) && (mGrowCount == 0) )
 		{
 			mSolveUpdateColorFlag = false;
 			
@@ -7151,6 +8100,108 @@ function TilesUpdate()
 			}
 		}
 		// </WEEKDAY LAST LEVEL BUBBLING>
+
+		/*
+		// <WEEKDAY LAST LEVEL BUBBLING>
+		// new approach: timed with the beat (not as good)
+		else if (true)
+		// else if ( (mWorldMode > 0) && (mWeekdayLevelsRemaining == 1) && (mGrowCount == 0) )
+		{
+			mSolveUpdateColorFlag = false;
+			
+			if (mStateNewTime > 0)
+			{
+				// const beat = 51; // Endless
+				const beat = 49; // Choplifter
+				let count = beat;   // like keeping lots of white ones
+				let xyIndex = (mStatNewTime % beat);
+				let tile = null;
+				while (xyIndex < mPlayFieldDivs.length)
+				{
+					// xyIndex = parseInt(Math.random() * mPlayFieldDivs.length);
+					if (mPlayField[xyIndex] > 0)
+					{
+						tile = mPlayFieldDivs[xyIndex];
+						if (true)
+						{
+							tileT = tile.transform;
+							
+							let ratio = (Math.random() < 0.5) ? 0.5 : 1.2;
+							tileT.jimWidth = mTileSize * ratio;
+							tileT.jimHeight = mTileSize * ratio;
+
+
+							tile.colorTempTime = 0;
+							tile.colorR = parseInt(Math.random() * 128);
+							tile.colorG = parseInt(Math.random() * 128);
+							tile.colorB = parseInt(Math.random() * 128);
+						}
+					}
+					xyIndex += beat;
+				}
+			}
+		}
+		// </WEEKDAY LAST LEVEL BUBBLING>
+		*/
+		
+		/*
+		// NEATO: MILESTONE WEEKDAY BUBBLING (just okay)
+		// combined weekday and milestone
+		{
+			mSolveUpdateColorFlag = false;
+		
+			for (var index = 0; index < mMilestoneRollers.length; index++)
+			{
+				if (mMilestoneRollers[index].xyIndex == -1)
+				{
+					mMilestoneRollers[index].xyIndex = parseInt(index * (mTileXYCount / mMilestoneRollers.length));
+					mMilestoneRollers[index].speed = 0.5; // 0.2 + Math.random() * 0.2;
+					mMilestoneRollers[index].speedCount = 0;
+					if (Math.random() < 0.5)
+					{
+						mMilestoneRollers[index].colorR = 128;
+						mMilestoneRollers[index].colorG = 255;
+						mMilestoneRollers[index].colorB = 128;
+					}
+					else
+					{
+						mMilestoneRollers[index].colorR = 128;
+						mMilestoneRollers[index].colorG = 255;
+						mMilestoneRollers[index].colorB = 255;
+					}
+				}
+			
+				mMilestoneRollers[index].speedCount += mMilestoneRollers[index].speed;
+				if (mMilestoneRollers[index].speedCount > 1)
+				{
+					mMilestoneRollers[index].speedCount -= 1;
+					mMilestoneRollers[index].xyIndex--;
+					if (mMilestoneRollers[index].xyIndex < 0) { mMilestoneRollers[index].xyIndex = mTileXYCount - 1; }
+
+					if (
+						(mPlayField[mMilestoneRollers[index].xyIndex] > 0)
+						&& (mMilestoneRollers[index].xyIndex != mPlayer.xyIndex)
+						&& (mPlayFieldDivs[mMilestoneRollers[index].xyIndex].finishTileState == 0)
+					)
+					{
+						let tile = mPlayFieldDivs[mMilestoneRollers[index].xyIndex];
+						let tileT = tile.transform;
+						
+						let ratio = 1.2; // (Math.random() < 0.5) ? 0.5 : 1.2;
+						tileT.jimWidth = mTileSize * ratio;
+						tileT.jimHeight = mTileSize * ratio;
+
+
+						tile.colorTempTime = 0;
+						tile.colorR = parseInt(Math.random() * 128);
+						tile.colorG = parseInt(Math.random() * 128);
+						tile.colorB = parseInt(Math.random() * 128);
+
+					}
+				}
+			}
+		}
+		*/
 		
 		// <MILESTONE>
 		else if ( 
@@ -7461,11 +8512,11 @@ function setCookie(cname, cvalue, exdays = 365 * 20) {
   var d = new Date();
   d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
   var expires = "expires="+d.toUTCString();
-  document.cookie = cname + "3" + "=" + cvalue + ";" + expires + ";path=/";
+  document.cookie = cname + "4" + "=" + cvalue + ";" + expires + ";path=/";
 }
 
 function getCookie(cname, pDefault = "") {
-  var name = cname + "3" + "=";
+  var name = cname + "4" + "=";
   var ca = document.cookie.split(';');
   for(var i = 0; i < ca.length; i++) {
     var c = ca[i];
@@ -8232,14 +9283,14 @@ function WorldChange(pWorldMode, pWorldDayOfWeek, pWorldEvening)
 	// if there's a change, grab the JSON levels 
 	if (
 		(pWorldMode != mWorldMode)
-		|| ((pWorldMode == 1) && ((pWorldDayOfWeek != mWorldDayOfWeek) || (pWorldEvening != mWorldEvening)))
+		|| ((pWorldMode > 0) && ((pWorldDayOfWeek != mWorldDayOfWeek) || (pWorldEvening != mWorldEvening)))
 	)
 	{
 		mWorldMode = pWorldMode;
 		mWorldDayOfWeek = pWorldDayOfWeek;
 		mWorldEvening = pWorldEvening;
 
-		if (mWorldMode == 1)
+		if (mWorldMode > 0)
 		{
 			LevelsGet("Level" + mWorldEvening + "" +  "000".substring(0, 3 - ("" + mWorldDayOfWeek).length) +  mWorldDayOfWeek + ".json");   // asynchronous
 		}
@@ -8336,7 +9387,7 @@ function WorldResize(pType = 0)
 	}
 	else
 	{
-		WorldResizeTimeoutID = -1;
+		if (WorldResizeTimeoutID != -1) { window.clearTimeout(WorldResizeTimeoutID); WorldResizeTimeoutID = -1; }
 
 		// width:100% and height:100% is ambiguous across devices, causing all kinds of headaches
 		var w = parseInt(window.innerWidth), h = parseInt(window.innerHeight);
@@ -10002,6 +11053,19 @@ function WorldResetFinish()
 		mState = SolveUpdate(2000);
 	}
 	*/
+	
+	WorldPlayFieldResize();   // ensure mWorldFlipped has been calculated
+	
+	if (mWorldMode == 1) // only applies to Weekdays (not 2:Challenges or 0:Narrative)
+	{
+		if (mLevelIndex == 1)   // we've reached 2nd level, this Day CANNOT be restarted
+		{
+			// alert("mWeekdayCutoffMilliseconds " + mWorldMode);
+			mWeekdayCutoffMilliseconds = Date.now();
+			setCookie("WeekdayCutoff", mWeekdayCutoffMilliseconds);
+		}
+	}
+
 	mWeekdayGrowFlag = false;   // number in background growing towards player
 	mGrowWordTileTotal = 0;   // size of that number
 
@@ -10125,7 +11189,7 @@ function WorldResetFinish()
 	// <MESSAGE>
 	// player has been waiting for level generation, and the title has dissapeared. give them another one
 	var freezeTime = 1000;
-	if (mWorldMode == 1)
+	if (mWorldMode > 0)
 	{
 		SoundBufferPlay(mSoundBufferMisc, 1, SoundBufferMiscType.soundpop);
 
@@ -10258,8 +11322,33 @@ function WorldResetFinish()
 		}
 	}
 	
-	if (mLevelIndex == 0) { GoogleAnalytics("Start"); }
-	GoogleAnalytics("Level" + mLevelIndex);
+	let hold = (mLevelIndex == 0) ? "Start" : "";	
+
+	CopyLevelToClipboard();   // on mobile ONLY works if we're in OnTouchEnd event, otherwise ignored (only shows 1st level, not others)
+	GoogleAnalytics(hold);
+}
+
+function GetLevelName(pWorldMode = false, pWorldEvening = false, pWorldDayOfWeek = -1, pBreak = '<BR>')
+{
+	let html = "";
+		
+	if (pWorldMode > 0)
+	{
+		html += mWorldModeMeta[pWorldMode].caption
+		if ((pWorldEvening) && (configPaid > 0)) { html += " Evening"; }
+		html += pBreak + "\"" + mUserData.weekday[pWorldDayOfWeek][pWorldEvening].captionLong + "\"";
+		html += pBreak + (mLevelIndex + 1) + " of " + mLevels.length;
+	}
+	else
+	{
+		html += "Frank's Story - Part " + mTalkIndex;
+		if (mLevelType == LevelType.Bonus) { html += pBreak + "BONUS!"; }
+		else if (mLevelType == LevelType.Boss) { html += pBreak + "BOSS!"; }
+		else if (mLevelType == LevelType.MileStone) { html += pBreak + "MILESTONE!"; }
+		else if (mLevelType == LevelType.OneHundred) { html += pBreak + "CENTENNIAL!"; }
+		else { html += pBreak + "Level " + (mStatNewFrankWin + mStatNewFrankLoss + 1);	}
+	}
+	return html;
 }
 
 function StatTopLeftRefresh()
@@ -10268,23 +11357,7 @@ function StatTopLeftRefresh()
 	// Attempt 2
 	// 3 invisible tiles
 
-	mStatTopLeftDiv.innerHTML = "";
-	if (mWorldMode > 0)
-	{
-		mStatTopLeftDiv.innerHTML += mUserData.weekday[mWorldDayOfWeek][mWorldEvening].captionLong;
-		// Moon clearly indicated evening (trying to avoid too much text)
-		// if (configPaid > 0) { mStatTopLeftDiv.innerHTML += (mWorldEvening) ? " Evening" : " Daytime"; }
-		mStatTopLeftDiv.innerHTML += "<BR>" + (mLevelIndex + 1) + " of " + mLevels.length;
-	}
-	else
-	{
-		mStatTopLeftDiv.innerHTML += "Frank's Story";
-		if (mLevelType == LevelType.Bonus) { mStatTopLeftDiv.innerHTML += "<BR>BONUS!"; }
-		else if (mLevelType == LevelType.Boss) { mStatTopLeftDiv.innerHTML += "<BR>BOSS!"; }
-		else if (mLevelType == LevelType.MileStone) { mStatTopLeftDiv.innerHTML += "<BR>MILESTONE!"; }
-		else if (mLevelType == LevelType.OneHundred) { mStatTopLeftDiv.innerHTML += "<BR>CENTENNIAL!"; }
-		else { mStatTopLeftDiv.innerHTML += "<BR>Level " + (mStatNewFrankWin + mStatNewFrankLoss + 1);	}
-	}
+	mStatTopLeftDiv.innerHTML = GetLevelName(mWorldMode, mWorldEvening, mWorldDayOfWeek);
 
 	if (mWorldRepeatCount > 0) { mStatTopLeftDiv.innerHTML += "<BR>Attempt " + (mWorldRepeatCount + 1); }
 
@@ -10749,8 +11822,14 @@ function OnLoad2(pEvent)
 		// Narrative (original): The Tale of Frank
 		MenuMainRestart(null, 0, holdDayEvening[0], holdDayEvening[1]);
 	}
+	else if (!IsWeekdayEnabled())
+	{
+		// Player attempted this day already (cookied), so cannot play again
+		MenuMain(null);
+	}
 	else
 	{
+
 		// Immediately start with Day Of Week (no menu)
 		MenuMainRestart(null, 1, holdDayEvening[0], holdDayEvening[1]);
 	}
@@ -10768,7 +11847,7 @@ function WorldUpdateTitle(pTimeStamp)
 	}
 }
 
-function FormatTime(pSeconds, pBreak = "")
+function FormatTime(pSeconds, pShowFraction = true)
 {
 	// we're actually passed a count of 1/60th seconds	
 	let minutes = 0;
@@ -10781,9 +11860,23 @@ function FormatTime(pSeconds, pBreak = "")
 	let seconds = parseInt(pSeconds / 60.0);
 	pSeconds -= seconds * 60;
 
-	let hold = (pSeconds < 10) ? "0" + pSeconds : pSeconds;
-	let fractionHTML = "<SPAN Style='font-size:40%; line-height:100%;'>" + hold + "/60</SPAN>";
+	let fractionHTML = "";
+	if (pShowFraction)
+	{
+		let hold = (pSeconds < 10) ? "0" + pSeconds : pSeconds;
+		fractionHTML = "<SPAN Style='font-size:40%; line-height:100%;'>" + hold + "/60</SPAN>";
+	}
+	
+	if (minutes > 0)
+	{
+		return minutes + "m" + "00".substr(1, 2 - (seconds + "").length) + seconds + "s" + fractionHTML;
+	}
+	else
+	{
+		return seconds + "s" + fractionHTML;
+	}	
 
+	/*
 	if (pBreak != "")
 	{		
 		// very wide, not good for list of Days in Phone Portrait mode!
@@ -10798,15 +11891,8 @@ function FormatTime(pSeconds, pBreak = "")
 	}
 	else
 	{
-		if (minutes > 0)
-		{
-			return minutes + "m" + "00".substr(1, 2 - (seconds + "").length) + seconds + "s" + fractionHTML;
-		}
-		else
-		{
-			return seconds + "s" + fractionHTML;
-		}	
-	}	
+	}
+	*/
 }
 
 
@@ -11330,7 +12416,17 @@ function WorldUpdateFailStuck(pFail)
 			WordShow("DISAPPOINTED<BR>I AM", "#00FF00", "#00FF00", 1.5, 4000);
 			SoundBufferPlay(mSoundBufferMisc, 1, SoundBufferMiscType.soundthud);
 		}
-		WorldEndStatUpdate(3);   // May have WON (recorded), but now FAILED (so reset)
+		
+		if (mWorldMode > 0)
+		{
+			mStatNewFail++;   // The beat the level successfully, but failed Use The Force so record the fail (but don't make them repeat the level)
+		}
+		else
+		{
+			WorldEndStatUpdate(3);   // Reset everything (WIN or Fail)
+			WorldEndStatUpdate(2);   // Record the Failure (so a win can be a loss)
+		}
+		
 		mState = 1;
 		WorldEndNew();
 	}
@@ -11459,6 +12555,8 @@ function WorldUpdateFailStuck(pFail)
 			mWorldState = 2;
 			mWorldState2Action = 3;
 			mWorldStateAlive = Date.now() + 2000;
+			
+			GoogleAnalytics("Fail");
 		}
 
 		if (overrideWordShow > 0)
@@ -11568,10 +12666,10 @@ function WorldUpdate(pTimeStamp = 100)
 		// Note: mPlayer.Update() no LONGER constantly called - it only responds to events (unlike mPlayer.Draw())
 		if (mWorldFreezeTime > 0)
 		{
-			gBrowser.KeyReset();		
+			gBrowser.KeyReset();
 			if (Date.now() > mWorldFreezeTime) { mWorldFreezeTime = 0; }
 		}
-		gBrowser.TouchProcessUpdate();
+		if (gBrowser.inputType == 2) { gBrowser.TouchProcessUpdate(); }
 		mPlayer.Draw();
 		TilesUpdate();
 		mPlayback.Update();   // player KILLS playback here.
@@ -11607,17 +12705,19 @@ function WorldUpdate(pTimeStamp = 100)
 			// Don't want constant addition/removal of ?. Give SolveUpdate a chance to resolve before changing number
 			if ( (mSolveUpdateCount > 0) && (Date.now() >= mSolveUpdateDate + 200) )
 			{
+				let innerHTML = "";
 				if ( (mState == 2) && (mSolutions != -1) && (!mStatePushPopped) )
 				{
-					mStatTopRightDiv.innerHTML = mSolutions.toLocaleString();
 					mStatNewSolution = mSolutions;
+					innerHTML = mStatNewFail + ", " + mStatNewSolution.toLocaleString();
 				}
 				else
 				{
 					// we may have found 1 solution but NOT all solutions (indicate with ?)
 					if (mSolutions > mStatNewSolution) { mStatNewSolution = mSolutions; }
-					mStatTopRightDiv.innerHTML = mStatNewSolution.toLocaleString() + "?";
+					innerHTML = mStatNewFail + ", " + mStatNewSolution.toLocaleString() + "?";
 				}
+				if (mStatTopRightDiv.innerHTML != innerHTML) { mStatTopRightDiv.innerHTML = innerHTML; }
 			}
 		}
 		// </SOLUTIONS DISPLAY>
@@ -11757,7 +12857,7 @@ function WorldUpdate(pTimeStamp = 100)
 						console.assert(
 							(mState == 2)
 							|| ( (mUseTheForceState > 0) && ((mState == 1) || (mState == 2)) )
-							, "WorldUpdate Error: mWorldMode == 1, Next Step: mState != 2 '" + mState + "', how did we get here?"
+							, "WorldUpdate Error: mWorldMode > 0, Next Step: mState != 2 '" + mState + "', how did we get here?"
 						);
 						console.assert(
 							((mLevelIndex > -1) && (mLevelIndex < mLevels.length))
@@ -11920,7 +13020,7 @@ function WorldUpdate(pTimeStamp = 100)
 		*/
 
 		// Increase Time if mWorldState is NOT celebrating, mState is NOT FAILED, Word is DONE flying in.
-		if ((mWorldMode == 1) && (mWorldState == 1) && (mState != 1) && (mWord.aliveRemember == 0) && (mUseTheForceState == 0) )
+		if ((mWorldMode > 0) && (mWorldState == 1) && (mState != 1) && (mWord.aliveRemember == 0) && (mUseTheForceState == 0) )
 		{
 			mStatNewTime += 1;   // each unit = 1/60th of a second
 			mStatBottomLeftDiv.innerHTML = FormatTime(mStatNewTime);
@@ -12269,9 +13369,7 @@ function Player()
 						this.keySuccess = key;
 
 						// <BEFORE>
-						// if (mTileTotal == mTileTotalRemember) { copyCanvasToClipboard(mCanvasMain); }
-
-						mPlayField[this.xyIndex] = 0;   // kills tile, TilesUpdate will send it flying away towards corner
+						mPlayField[this.xyIndex] = 0;   // kills tile, TilesUpdate will visually remove it
 						if (mPlayFieldDivs[this.xyIndex].extra == 0) { mTileTotal--; }   // Player already Failed (mState = 1) from stepping on Extra tile, BUT just being paranoid							
 
 						if (mState != 1) { TileSetColor(mPlayFieldDivs[this.xyIndex], 255, 255, 64, 0); }
@@ -12572,7 +13670,7 @@ function Player()
 			// <MOVEDONCE>
 			if (movedOnce)
 			{
-				if ( (mWorldMode == 1) && (mWorldState == 1) && (mState != 1) && (mUseTheForceState == 0) )
+				if ( (mWorldMode > 0) && (mWorldState == 1) && (mState != 1) && (mUseTheForceState == 0) )
 				{
 					mStatNewSteps++;
 					mStatBottomRightDiv.innerHTML = mStatNewSteps.toLocaleString();
@@ -12616,14 +13714,16 @@ function Player()
 							// Level could NOT be beaten. Entering Hole A SUCCESS! The number of attempts does NOT matter. Player can win by sheer tenacity.
 							WordShow("SUCCESS!<BR>IT >WAS<<BR>IMPOSSIBLE!", "#FFFFFF", "#000000", 1.5, 4000);
 							SoundBufferPlay(mSoundBufferMisc, 1, SoundBufferMiscType.soundthud);
-							WorldEndStatUpdate(3);
+							WorldEndStatUpdate(3);   // Reset
+							WorldEndStatUpdate(1);   // Record Win
 							mUrineState = 0;
 							mState = 2;
 							WorldEndNew();
 						}
 						// </URINESTATE END SUCCESS2>
+
+						// <URINESTATE END FAILURE2>						
 						else if (mUrineState == 2)
-						// <URINESTATE END FAILURE2>
 						{
 							// Level COULD be beaten. Entering Hole A FAILURE. Let the player try the level normally.
 							// hole usually sends to the next level, but this is URINE and the level was possible
@@ -12873,11 +13973,7 @@ function Player()
 								(
 									(mWorldMode > 0)
 									&& (mUseTheForceState == 0)
-									&&
-									(
-										( (mLevelIndex > 2) && (mLevelIndex < 8) )
-										|| ( (mLevelIndex > 12) && (mLevelIndex < 18) )
-									)
+									&& ( (mLevelIndex > 2) && (mLevelIndex < mLevels.length - 2) )
 									&& (mTileTotalRemember < 150)
 									&& (Math.random() < 0.05)   // 50% chance with 10 levels
 								)
@@ -12947,6 +14043,7 @@ function Player()
 									WordShow("THAT WASN'T THE LEVEL<BR>YOU WERE LOOKING FOR", "#FFFFFF", "#000000", 2, 8000);   // these aren't the droids you're looking for
 									SoundBufferPlay(mSoundBufferMisc, 1, SoundBufferMiscType.soundthud);					
 								}
+								
 								if (mWorldMode > 0)
 								{
 									mStatNewFail = mStatNewFailRemember;    // Forgive all the fails this level! Redemption!
@@ -12954,6 +14051,7 @@ function Player()
 								else
 								{
 									WorldEndStatUpdate(3);   // May have LOST (WorldRepeat >= 3), but now REDEEMED! (so reset)
+									WorldEndStatUpdate(1);   // Record Win
 								}
 								mState = 2;
 								WorldEndNew();
@@ -13256,7 +14354,7 @@ function Browser()
 	}
 
 	this.OnKeyDown = function(pEvent)
-	{
+	{	
 		// https://developer.mozilla.org/en-US/docs/Web/API/Document/keydown_event
 		if (this.inputType != 0)
 		{
@@ -13644,10 +14742,11 @@ function Browser()
 	}
 
 	this.OnTouchStart = function(pEvent)
-	{
+	{		
 		// Investigate: 2024-09-12 on iPhone Safari I can get an OnTouchStart TWICE before OnTouchEnd 
 		// if (this.touchState != 0) { alert("OnTouchStart Error() : touchState != 0 '" + this.touchState + "'"); }
-		
+		this.TouchReset();		
+
 		if (this.inputType != 2)
 		{
 			document.removeEventListener('mousedown', Browser_OnMouseDown);
@@ -13665,20 +14764,25 @@ function Browser()
 		)
 		{
 			// handled by OnTouchEnd
+			this.touchState = 1;
+		}
+		else if (mWorldClick != null)
+		{
+			// handled by OnTouchEnd
+			this.touchState = 1;			
+		}
+		else if ((mWorldState != 1) || (mWorldFreezeTime > 0))
+		{
+			// do nothing. do not start
 		}
 		else
 		{
-			if ((mWorldFreezeTime == 0) && (mWorldState == 1) && (mWorldClick == null))
-			{
-				this.TouchReset();
-			
-				this.touchState = 1;
-				this.touchStartX = parseInt(pEvent.touches[0].pageX);
-				this.touchStartY = parseInt(pEvent.touches[0].pageY);	
-				this.touchStartDate = Date.now() + 450;   // after 1/2 second of holding switch to instant mode
-				this.touchCurrentX = this.touchStartX;
-				this.touchCurrentY = this.touchStartY;
-			}
+			this.touchState = 1;
+			this.touchStartX = parseInt(pEvent.touches[0].pageX);
+			this.touchStartY = parseInt(pEvent.touches[0].pageY);	
+			this.touchStartDate = Date.now() + 450;   // after 1/2 second of holding switch to instant mode
+			this.touchCurrentX = this.touchStartX;
+			this.touchCurrentY = this.touchStartY;
 		}
 		
 		// TouchMove and TouchEnd STILL happen - BUT Mouse events do NOT.
@@ -13686,41 +14790,15 @@ function Browser()
 		return false;	
 	}
 
-	this.TouchProcessUpdate = function()
-	{
-		if (this.touchState == 1) 
-		{
-			// Touch Special Case: User holds for 750ms
-			if (Date.now() - this.touchStartDate > 450 * 2)
-			{
-				// we have not moved for a very long time (almost 1 second)
-				this.KeyPush(32, 2);   // Attempt to finish the level (Shift + SpaceBar)
-				this.touchState = 0;
-				mPlayer.Update();
-				mPlayer.Draw();
-				// 2024-09-05 DEBUG
-				// WordShow("DEBUG<BR>SUCCESS!", "#FFFFFF", "#0000FF", 1.2, 2000 + 1500, 0.015);
-				// SoundBufferPlay(mSoundBufferMisc, 1, SoundBufferMiscType.soundthud);
-				// mState = 2;
-				// WorldEndNew();
-				// mWorldStateAlive = Date.now() + 100;
-			}
-			
-			// Touch Special Case: User swiped and held BEFORE instant mode clicked in, followup when instant mode clicks in
-			else if (Date.now() > this.touchStartDate)
-			{
-				this.TouchProcess(25, 1);
-			}
-		}
-	}
-	
 	this.TouchProcess = function(pLimit = -1, pShift = -1)
 	{
+		// Shared by all other Touch Events. Converts swipe direction to keystroke
+		
 		// Depends on this.touchCurrentX/Y and this.touchStartX/Y
 		if (pLimit == -1) { alert("TouchProcess() Error: pLimit == -1"); }
 		if (pShift == -1) { alert("TouchProcess() Error: pShift == -1"); }
 		if (this.touchState == 0) { alert("TouchProcess() Error: this.touchState == 0"); }
-	 	if (mWorldState != 1) { alert("TouchProcess() Error: mWorldState != 1 '" + mWorldState + "'"); }
+		if (mWorldState != 1) { alert("TouchProcess() Error: mWorldState != 1 '" + mWorldState + "'"); }
 
 		// convert the touch angle to a keystroke
 		let deltaX = this.touchCurrentX - this.touchStartX;
@@ -13733,26 +14811,91 @@ function Browser()
 			this.KeyPushAngle(deltaX, deltaY, pShift);
 			this.touchStartX = this.touchCurrentX;   // cut off any extra, don't want it influencing next instant move
 			this.touchStartY = this.touchCurrentY;
-			this.touchState = 2;   // we've moved
+			this.touchState = 2;   // we've moved instantly BEFORE OnTouchEnd
 			mPlayer.Update();
 			mPlayer.Draw();   // Draw can be called twice in the same frame, not going to fix.
 		}
 	}
 
-	this.OnTouchMove = function(pEvent)
-	{	
-		if (
-			(mButtonCloseDiv.style.display == "")
-			&& (parseInt(pEvent.touches[0].pageX) < parseInt(mButtonCloseDiv.style.width) * 1.2)
-			&& (parseInt(pEvent.touches[0].pageY) < parseInt(mButtonCloseDiv.style.height) * 1.2)
-		)
+	this.TouchProcessUpdate = function()
+	{
+		// Called every WorldUpdate
+		// User holding and moving finger, ignore ButtonClose and WorldClick
+		if (this.touchState > 0)
 		{
-			// handled by OnTouchEnd
+			if (
+				(this.touchState == 1)
+				&& (mButtonCloseDiv.style.display == "")
+				&& (this.touchCurrentX < parseInt(mButtonCloseDiv.style.width) * 1.2)
+				&& (this.touchCurrentY < parseInt(mButtonCloseDiv.style.height) * 1.2)
+			)
+			{
+				// handled by OnTouchEnd
+			}
+			else if ((this.touchState == 1) && (mWorldClick != null))
+			{
+				// handled by OnTouchEnd
+			}
+			else if ((mWorldState != 1) || (mWorldFreezeTime > 0))
+			{
+				this.touchState = 0;
+			}
+			else if (this.touchState == 1)   // 2 means we've moved.
+			{
+				// Touch Special Case: User holds for 800ms
+				if (Date.now() - this.touchStartDate > 800)   // 450 * 2 too long
+				{
+					/*
+					// we have not moved for a very long time (almost 1 second)
+					this.KeyPush(32, 2);   // Attempt to finish the level (Shift + SpaceBar)
+					this.touchState = 0;
+					mPlayer.Update();
+					mPlayer.Draw();
+					*/
+					
+					// 2024-09-05 DEBUG
+					WordShow("DEBUG<BR>SUCCESS!", "#FFFFFF", "#0000FF", 1.2, 2000 + 1500, 0.015);
+					SoundBufferPlay(mSoundBufferMisc, 1, SoundBufferMiscType.soundthud);
+					mState = 2;
+					WorldEndNew();
+					gBrowser.KeyReset();
+					mWorldStateAlive = Date.now() + 100;
+				}
+				
+				// Touch Special Case: User swiped and held BEFORE enough time passed for instant.
+				// They're STILL holding BUT OnTouchMove won't fire anymore
+				// Check if enough time has passed to go instant
+				else if (Date.now() > this.touchStartDate)
+				{
+					this.TouchProcess(25, 1);
+				}
+			}
 		}
-		else
+	}
+	
+	this.OnTouchMove = function(pEvent)
+	{
+		if (this.touchState > 0)
 		{
-			if ( (this.touchState > 0) && (mWorldFreezeTime == 0) && (mWorldState == 1) && (mWorldClick == null) )
-			{	
+			if (
+				(this.touchState == 1)
+				&& (mButtonCloseDiv.style.display == "")
+				&& (parseInt(pEvent.touches[0].pageX) < parseInt(mButtonCloseDiv.style.width) * 1.2)
+				&& (parseInt(pEvent.touches[0].pageY) < parseInt(mButtonCloseDiv.style.height) * 1.2)
+			)
+			{
+				// handled by OnTouchEnd
+			}
+			else if ((this.touchState == 1) && (mWorldClick != null))
+			{
+				// handled by OnTouchEnd
+			}
+			else if ((mWorldState != 1) || (mWorldFreezeTime > 0))
+			{
+				this.touchState = 0;
+			}
+			else
+			{
 				// remember the movement in case user holds touching but stops moving
 				// WorldUpdate will start polling Browser_ontouchmove using this memory)
 				this.touchCurrentX = parseInt(pEvent.touches[0].pageX);
@@ -13762,32 +14905,35 @@ function Browser()
 				if (Date.now() > this.touchStartDate) { this.TouchProcess(25, 1); }
 			}
 		}
-
+		
 		if (pEvent) { pEvent.preventDefault(); pEvent.stopPropagation(); }
 		return false;
 	}
 
 	this.OnTouchEnd = function(pEvent)
-	{	
-		// let clientRect = mButtonCloseDiv.getBoundingClientRect();
-		if (
-			(mButtonCloseDiv.style.display == "")
-			&& (pEvent.changedTouches[0].pageX < parseInt(mButtonCloseDiv.style.width) * 1.2)
-			&& (pEvent.changedTouches[0].pageY < parseInt(mButtonCloseDiv.style.height) * 1.2)
-		)
+	{
+		if (this.touchState > 0)
 		{
-			MenuMain(null, mWorldState);
-		}
-
-		else if (mWorldClick != null)
-		{
-			let hold = mWorldClick;
-			mWorldClick = null;
-			hold();
-		}
-
-		else if ( (this.touchState > 0) && (mWorldFreezeTime == 0) && (mWorldState == 1) )
-		{
+			if (
+				(this.touchState == 1)
+				&& (mButtonCloseDiv.style.display == "")
+				&& (pEvent.changedTouches[0].pageX < parseInt(mButtonCloseDiv.style.width) * 1.2)
+				&& (pEvent.changedTouches[0].pageY < parseInt(mButtonCloseDiv.style.height) * 1.2)
+			)
+			{
+				this.touchState = 0; MenuMain(null, mWorldState);
+			}
+			else if ((this.touchState == 1) && (mWorldClick != null))
+			{
+				this.touchState = 0;
+				let hold = mWorldClick;
+				mWorldClick = null;
+				hold();
+			}
+			else if ((mWorldState != 1) || (mWorldFreezeTime > 0))
+			{
+				this.touchState = 0;
+			}
 			/*
 			Test using:
 			1. Large snake playfield - running at LOW fps while calculating answer
@@ -13795,8 +14941,7 @@ function Browser()
 			3. Remove Tap - ensure all player input is "noticed"
 			4. Slow iPad - has DIFFERENT resolution (touchx, touchy) (which is why instant is determined by time)
 			*/
-
-			if (this.touchState == 1)   // player has NOT held-to-move so move 1 square
+			else if (this.touchState == 1)   // player has NOT held-to-move so move 1 square
 			{
 				// Remember: Browser_ontouchmove may not have beeen called
 				this.touchCurrentX = parseInt(pEvent.changedTouches[0].pageX);
@@ -13812,17 +14957,19 @@ function Browser()
 				{
 					this.TouchProcess(0, 0);
 				}
+				this.touchState = 0;
 				mPlayer.Update();
 				mPlayer.Draw();
 			}
+			else
+			{
+				this.touchState = 0;
+			}
 		}
-
-		this.touchState = 0;
 	
 		if (pEvent) { pEvent.preventDefault(); pEvent.stopPropagation(); }	
 		return false;
 	}
-
 }
 
 // Instantiate the Browser object (badly encapsulates everything)
@@ -13860,13 +15007,10 @@ function Browser_OnMouseMove(pEvent) { gBrowser.OnMouseMove(pEvent); }
 <DIV ID="StatBottomLeftDiv" Style='position:absolute; padding:0px 0px calc(100vh * 0.05) calc(100vw * 0.05); margin:0px; left:0px; bottom:0px; z-index:2;'></DIV>
 <DIV ID="StatBottomRightDiv" Style='position:absolute; padding:0px calc(100vw * 0.05) calc(100vh * 0.05) 0px; margin:0px; right:0px; bottom:0px; z-index:2;'></DIV>
 
-<DIV ID="ButtonClose" Class="ButtonClose" Style="position:absolute; padding:0px; margin:0px; left:0px; top:0px; display:none; opacity:1.0; cursor:pointer; width:50px; height:50px; background:#ff0000; background-color:#ccccff; box-sizing:border-box; border:4px solid #666666;">
+<DIV ID="ButtonClose" Class="ButtonClose" Style="position:absolute; padding:0px; margin:0px; left:0px; top:0px; display:none; opacity:1.0; cursor:pointer; width:50px; height:50px; background:#ff0000; background-color:#ccccff; box-sizing:border-box; border:4px solid #666666;"></DIV>
 
-<div id="JimInput" style="display:none;"><SPAN Style="font-family: monospace, monospace; color:#000000FF; background-color:#FF000000FF;">.JKK.<BR>.<B>XXX</B>.<BR>.....</SPAN></DIV>
+<TEXTAREA id="clipboardtextarea" contenteditable="true" Style="position:absolute; left:0px; top:0px; z-index:30; display:none;">stuff</TEXTAREA>
 
-<!--
-<input id="JimInput" type="text" Value="<B>rockbottom</B>" />
--->
 
 <!--
 <DIV ID="ButtonClose" Class="ButtonClose" Style="position:absolute; padding:0px; margin:0px; left:10px; top:10px; display:none; opacity:0.5; cursor:pointer; width:53px; height:53px; background:#ff0000; background-color:#ccccff; box-sizing:border-box; border:4px solid #666666;">
