@@ -1,3 +1,4 @@
+<!doctype html>
 <HTML>
 <HEAD>
 <TITLE>You Can Always Go Back</TITLE>
@@ -79,7 +80,6 @@ DONE. Check all Frank's levels pass WorldCheck (suspect they don't)
 	According to Google Gemini, "Gemini for Google Sheets" is not publicly available yet
 	(i guess if it exists at all)
 -->
-
 
 <STYLE>
 @font-face { font-family:"Lato"; src:url("Lato-Regular.ttf"); font-weight:400; }
@@ -291,8 +291,6 @@ function GetDayEvening()
 
 function IsWeekdayEnabled()
 {
-	return true;
-	
 	// Current Date + Evening (copied from GetDayEvening)
 	let holdDate = new Date();
 	// let holdDate = new Date("Oct 24 2024 9:00:00 GMT-0400");
@@ -332,8 +330,8 @@ function GetTextSize(pText, pFontSize, pLineHeight = -1)
 	var returnValue = new Object();
 	var test = document.getElementById("TextSize");
 	test.innerHTML = pText;
-	test.style.fontSize = pFontSize;
-	if (pLineHeight == -1) { test.style.lineHeight = "normal"; } else { test.style.lineHeight = pLineHeight; }
+	test.style.fontSize = parseInt(pFontSize) + "px";
+	if (pLineHeight == -1) { test.style.lineHeight = "normal"; } else { test.style.lineHeight = parseInt(pLineHeight) + "px"; }
 	returnValue.height = (test.clientHeight + 1);
 	returnValue.width = (test.clientWidth + 1);
 	test.innerHTML = "";   // DIVS with IDs could have been included, need to remove DUPLICATE IDs this causes.
@@ -360,7 +358,7 @@ function CurtainRefresh(pType)
 	// pType: 0:remember what it was   1:plaid-overlap   2:wavy-background 
 	if (pType != 0) { mWordCurtain.type = pType; }   // remember in case of resize
 
-	mWordCurtain.style.width = mWorldWidth; mWordCurtain.style.height = mWorldHeight;
+	mWordCurtain.style.width = mWorldWidth + "px"; mWordCurtain.style.height = mWorldHeight + "px";
 	let size = mWorldWidth; if (size < 1200) { size = 1200; }
 	mWordCurtain.style.backgroundSize = size + "px " + size + "px";		
 
@@ -444,8 +442,8 @@ function MenuShow2(pEvent, pInnerHTML, pWorldClick = null, pCurtainImageInnerHTM
 	}
 	else
 	{
-		mWordCurtainImage.style.width = mWorldWidth;
-		mWordCurtainImage.style.height = mWorldHeight;
+		mWordCurtainImage.style.width = mWorldWidth + "px";
+		mWordCurtainImage.style.height = mWorldHeight + "px";
 		mWordCurtainImage.style.zIndex = 16;
 		mWordCurtainImage.innerHTML = pCurtainImageInnerHTML;		
 		mWordCurtainImage.style.display = "";
@@ -6307,8 +6305,8 @@ function RestartUpdate()
 		var hold = mWorldRepeatCount - 1;
 		var deltaX = parseInt(-hold * 0.5 + Math.random() * hold);
 		var deltaY = parseInt(-hold * 0.5 + Math.random() * hold);
-		mRestart.div.style.left = parseInt(mRestart.transform.jimLeft - mRestart.transform.jimWidth * 0.5) + deltaX;
-		mRestart.div.style.top = parseInt(mRestart.transform.jimTop - mRestart.transform.jimHeight * 0.5) + deltaY;
+		mRestart.div.style.left = (parseInt(mRestart.transform.jimLeft - mRestart.transform.jimWidth * 0.5) + deltaX) + "px";
+		mRestart.div.style.top = (parseInt(mRestart.transform.jimTop - mRestart.transform.jimHeight * 0.5) + deltaY) + "px";
 	}
 	// </HOLE SHOW>
 }
@@ -6625,7 +6623,7 @@ function WordUpdateGrow()
 {
 	const limit = 40.0;
 	mGrowWordTileTotal += 0.03;
-	if (mGrowWordTileTotal > limit) { mGrowWordTileTotal = limit * 0.8; }
+	if (mGrowWordTileTotal > limit) { mGrowWordTileTotal = limit; }
 	mWord.fontRatio = 0.25 * (1.0 + mGrowWordTileTotal * 0.12);
 	mWord.jimColor = document.body.style.backgroundColor;
 	mWord.textShadowColor = "#FFFFFF";	
@@ -6870,7 +6868,7 @@ function WordUpdateBackgroundWeekday()
 				mWeekdayGrowFlag = true;
 				WordSet((mTileTotal - 1) + "", 0.0, 1, 1, "#000000", "#FFFFFF");
 				const limit = 40.0;
-				if ( (mTileTotal < 11) && (mGrowWordTileTotal < limit * 0.8) ) { mGrowWordTileTotal = limit * 0.8; }
+				if (mTileTotal < 11) { mGrowWordTileTotal = limit; }   // stops growing. just HUGE
 			}
 		}
 		
@@ -6989,7 +6987,6 @@ function WordUpdateBackground()
 	else if ((mGrowCount > 0) && (mState != 1))
 	{
 		WordUpdateGrowFinal();
-		// WordUpdateGrow();
 	}
 	
 	else if (mTileTotal != mWord.tileTotal)
@@ -8610,8 +8607,8 @@ function Transform(pParentDiv)
 				this.jimWidth += (pDestWidth - this.jimWidth) * pPercentageWidth;
 				this.jimHeight += (pDestHeight - this.jimHeight) * pPercentageWidth;
 			}			
-			this.parentDiv.style.width = parseInt(this.jimWidth);
-			this.parentDiv.style.height = parseInt(this.jimHeight);
+			this.parentDiv.style.width = parseInt(this.jimWidth) + "px";
+			this.parentDiv.style.height = parseInt(this.jimHeight) + "px";
 		}
 		
 		if (pPercentageLeft == 1)
@@ -8623,8 +8620,8 @@ function Transform(pParentDiv)
 			this.jimLeft += (pDestLeft - this.jimLeft) * pPercentageLeft;
 			this.jimTop += (pDestTop - this.jimTop) * pPercentageLeft;
 		}
-		this.parentDiv.style.left = parseInt(this.jimLeft - this.jimWidth * 0.5);
-		this.parentDiv.style.top = parseInt(this.jimTop - this.jimHeight * 0.5);
+		this.parentDiv.style.left = parseInt(this.jimLeft - this.jimWidth * 0.5) + "px";
+		this.parentDiv.style.top = parseInt(this.jimTop - this.jimHeight * 0.5) + "px";
 
 		// 2024 debug debugjim
 		if (this.parentDiv.tile == true)
@@ -9378,6 +9375,16 @@ function WorldPlayFieldResize()
 var WorldResizeTimeoutID = -1;
 function WorldResize(pType = 0)
 {
+	function StatDivResize(pStatDiv)
+	{
+		let fontSize = (mWorldWidth > mWorldHeight) ? Math.floor(mWorldHeight * 0.075) : Math.floor(mWorldWidth * 0.075);
+		pStatDiv.style.fontSize = fontSize + "px";
+		pStatDiv.style.color = "#FFFF00FF";
+		pStatDiv.style.opacity = 1;
+		let shadowSize = Math.floor(fontSize * 0.04);
+		pStatDiv.style.textShadow = shadowSize + "px " + shadowSize + "px " + "0px #000000FF";
+	}
+
 	// pType: 0-called from Resize Event   1-called from code
 
 	// when running as an iPhone home page app, window.innerWidth/Height NOT set properly. This event needs to finish to fix.
@@ -9397,7 +9404,7 @@ function WorldResize(pType = 0)
 				
 		if (mWord != null) { WordShowResize(); }
 
-		if (mWorldDiv)
+		if (mWorldDiv != null)
 		{
 			mWorldDiv.style.width = mWorldWidth + "px";
 			mWorldDiv.style.height = mWorldHeight + "px";
@@ -9408,37 +9415,13 @@ function WorldResize(pType = 0)
 			CurtainRefresh(0);
 		}
 		WorldPlayFieldResize();
-
-		// ----------
-		let shadowSize = -1;
-		
-		let fontSize = (mWorldWidth > mWorldHeight) ? Math.floor(mWorldHeight * 0.075) : Math.floor(mWorldWidth * 0.075);
 		
 		if (mStatTopLeftDiv != null)
 		{
-			mStatTopLeftDiv.style.fontSize = fontSize;
-			mStatTopLeftDiv.style.color = "#FFFF00FF";
-			mStatTopLeftDiv.style.opacity = 1;
-			shadowSize = Math.floor(fontSize * 0.04);
-			mStatTopLeftDiv.style.textShadow = shadowSize + "px " + shadowSize + "px " + "0px #000000FF";
-
-			mStatTopRightDiv.style.fontSize = fontSize;
-			mStatTopRightDiv.style.color = "#FFFF00FF";
-			mStatTopRightDiv.style.opacity = 1;
-			shadowSize = Math.floor(fontSize * 0.04);
-			mStatTopRightDiv.style.textShadow = shadowSize + "px " + shadowSize + "px " + "0px #000000FF";
-
-			mStatBottomLeftDiv.style.fontSize = fontSize;
-			mStatBottomLeftDiv.style.color = "#FFFF00FF";
-			mStatBottomLeftDiv.style.opacity = 1;
-			shadowSize = Math.floor(fontSize * 0.04);
-			mStatBottomLeftDiv.style.textShadow = shadowSize + "px " + shadowSize + "px " + "0px #000000FF";
-
-			mStatBottomRightDiv.style.fontSize = fontSize;
-			mStatBottomRightDiv.style.color = "#FFFF00FF";
-			mStatBottomRightDiv.style.opacity = 1;
-			shadowSize = Math.floor(fontSize * 0.04);
-			mStatBottomRightDiv.style.textShadow = shadowSize + "px " + shadowSize + "px " + "0px #000000FF";
+			StatDivResize(mStatTopLeftDiv);
+			StatDivResize(mStatTopRightDiv);
+			StatDivResize(mStatBottomLeftDiv);
+			StatDivResize(mStatBottomRightDiv);
 		}
 	}
 }
@@ -11417,7 +11400,7 @@ function LevelName2(levelIndex)
 }
 
 window.onload = function()
-{	
+{		
 	// Called ONCE. Setup minimum required to show shrinking Title, then continue full slow setup in OnLoad2
 	// Consider launching more HTTP requests here to cache things while title shrinks
 
@@ -12584,18 +12567,21 @@ document.addEventListener("visibilitychange", () => {
 	// Catches the cases document.hasFocus() doesn't (tab change)
 	// iPhone and Browser testing shows this stops WorldUpdate.requestAnimationFrame.
 	// I am RELYING on this fact, otherwise WorldUpdate is going to keep working (even though no-one can see it)
-	if (mLevelGenerate == null)
+	if (mAudioContext != null)
 	{
-		if ((document.hidden) || (document.visibilityState != "visible"))
+		if (mLevelGenerate == null)
 		{
-			mWorldFreezeTime = Date.now() + 1000 * 60 * 60 * 24;
-			mAudioContext.suspend();
-		}
-		else
-		{
-			mWorldFreezeTime = Date.now() + 750;
-			backgroundR = 0; backgroundG = 255; backgroundB = 0;
-			mAudioContext.resume();
+			if ((document.hidden) || (document.visibilityState != "visible"))
+			{
+				mWorldFreezeTime = Date.now() + 1000 * 60 * 60 * 24;
+				mAudioContext.suspend();
+			}
+			else
+			{
+				mWorldFreezeTime = Date.now() + 750;
+				backgroundR = 0; backgroundG = 255; backgroundB = 0;
+				mAudioContext.resume();
+			}
 		}
 	}
 });
@@ -14238,8 +14224,8 @@ function Player()
 
 		if (mWorldFreezeTime > 0)
 		{
-			this.div.style.left = parseInt(this.transform.jimLeft - this.transform.jimWidth * 0.5) + ((-1 + parseInt(Math.random() * 2.0) * 2) * 5);
-			this.div.style.top = parseInt(this.transform.jimTop - this.transform.jimHeight * 0.5) + ((-1 + parseInt(Math.random() * 2.0) * 2) * 5);
+			this.div.style.left = parseInt(this.transform.jimLeft - this.transform.jimWidth * 0.5) + ((-1 + parseInt(Math.random() * 2.0) * 2) * 5) + "px";
+			this.div.style.top = parseInt(this.transform.jimTop - this.transform.jimHeight * 0.5) + ((-1 + parseInt(Math.random() * 2.0) * 2) * 5) + "px";
 		}
 	}
 }
@@ -14845,31 +14831,34 @@ function Browser()
 				// Touch Special Case: User holds for 800ms
 				if (Date.now() - this.touchStartDate > 800)   // 450 * 2 too long
 				{
-					// we have not moved for a very long time (almost 1 second)
-					this.KeyPush(32, 2);   // Attempt to finish the level (Shift + SpaceBar)
-					this.touchState = 0;
-					mPlayer.Update();
-					mPlayer.Draw();
-
-					/*					
-					// 2024-09-05 DEBUG
-					WordShow("DEBUG<BR>SUCCESS!", "#FFFFFF", "#0000FF", 1.2, 2000 + 1500, 0.015);
-					SoundBufferPlay(mSoundBufferMisc, 1, SoundBufferMiscType.soundthud);
-					mState = 2;
-					WorldEndNew();
-					gBrowser.KeyReset();
-					mWorldStateAlive = Date.now() + 100;
-					*/
+					if (configDebug > 0)
+					{
+						// Skip to next level.
+						WordShow("DEBUG<BR>SUCCESS!", "#FFFFFF", "#0000FF", 1.2, 2000 + 1500, 0.015);
+						SoundBufferPlay(mSoundBufferMisc, 1, SoundBufferMiscType.soundthud);
+						mState = 2;
+						WorldEndNew();
+						gBrowser.KeyReset();
+						mWorldStateAlive = Date.now() + 100;					
+					}
+					else
+					{
+						// we have not moved for a very long time (almost 1 second)
+						this.KeyPush(32, 2);   // Attempt to finish the level (Shift + SpaceBar)
+						this.touchState = 0;
+						mPlayer.Update();
+						mPlayer.Draw();
+					}
 				}
 				
-				// Touch Special Case: User swiped and held BEFORE enough time passed for instant.
+				// Touch Special Case: User swiped and held BEFORE enough time passed to be in instant mode.
 				// They're STILL holding BUT OnTouchMove won't fire anymore
 				// Check if enough time has passed to go instant
 				else if (Date.now() > this.touchStartDate)
 				{
 					this.TouchProcess(25, 1);
 				}
-			}
+			}			
 		}
 	}
 	
@@ -15010,7 +14999,6 @@ function Browser_OnMouseMove(pEvent) { gBrowser.OnMouseMove(pEvent); }
 <DIV ID="ButtonClose" Class="ButtonClose" Style="position:absolute; padding:0px; margin:0px; left:0px; top:0px; display:none; opacity:1.0; cursor:pointer; width:50px; height:50px; background:#ff0000; background-color:#ccccff; box-sizing:border-box; border:4px solid #666666;"></DIV>
 
 <TEXTAREA id="clipboardtextarea" contenteditable="true" Style="position:absolute; left:0px; top:0px; z-index:30; display:none;">stuff</TEXTAREA>
-
 
 <!--
 <DIV ID="ButtonClose" Class="ButtonClose" Style="position:absolute; padding:0px; margin:0px; left:10px; top:10px; display:none; opacity:0.5; cursor:pointer; width:53px; height:53px; background:#ff0000; background-color:#ccccff; box-sizing:border-box; border:4px solid #666666;">
