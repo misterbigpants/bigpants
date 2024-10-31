@@ -36,9 +36,7 @@ var configAnalytics = 1;
 </script>
 
 <!--
-Remember:
-	mWorldMode-mWorldEvening-mWorldDayOfWeek-mLevelIndex
-
+2024-10-29 Remember: mWorldMode-mWorldEvening-mWorldDayOfWeek-mLevelIndex
 	mWorldMode   0:Narrative 1:WeekDay 2:Challenges
 
 	mWorldEvening   0:DayTime   1:Evening
@@ -151,16 +149,16 @@ padding-bottom:calc(100vh * 0.035);
   padding:0px calc(100vw * 0.05) 0px 0px;
 */
 
-.Buttons {position:absolute;top:10px;left:10px;width:60px;margin:0px;padding:0px;}
 /*
+.Buttons {position:absolute;top:10px;left:10px;width:60px;margin:0px;padding:0px;}
 .ButtonClose {margin:0px; padding:0px; border:2px solid white; font-size:20px; width:30px; height:30px; text-align:center;}
-*/
 
 @media screen and (max-width:1000px)
 {
-	// .Buttons {width:150px;}
-	// .ButtonClose {margin:0px 0px 40px 0px; font-size:100px;width:150px;height:150px;}
+	.Buttons {width:150px;}
+	.ButtonClose {margin:0px 0px 40px 0px; font-size:100px;width:150px;height:150px;}
 }
+*/
 </STYLE>
 
 
@@ -291,6 +289,8 @@ function GetDayEvening()
 
 function IsWeekdayEnabled()
 {
+	return true;
+
 	// Current Date + Evening (copied from GetDayEvening)
 	let holdDate = new Date();
 	// let holdDate = new Date("Oct 24 2024 9:00:00 GMT-0400");
@@ -501,20 +501,23 @@ Notes
 */
 
 function ClipboardCopy(text) {
-  let textArea = document.getElementById("clipboardtextarea");
-  textArea.style.display = "";
+	// BE CAREFUL using this. It's the OLD way that needs to be replaced by ClipboardAPI when I add HTTPS
+	// On mobile, .focus() out the keyboard which causes a resize event then .blur() removesthe keybaord causing a resize event - NOTICEABLE 
+	// Remember: On mobile this only works when called from an interactive event (OnTouchEnd), CANNOT call from a timer
+	let textArea = document.getElementById("clipboardtextarea");
+	textArea.style.display = "";
 
-  textArea.value = text;
-  textArea.focus();
-  textArea.select();
-  try {
-    document.execCommand('copy');   // old but no https
-  } catch (err) {
+	textArea.value = text;
+	textArea.focus();
+	textArea.select();
+	try {
+	document.execCommand('copy');   // old but no https
+	} catch (err) {
 	alert("Unable to copy to clipboard\n" + err);
-  }
+	}
 
-  textArea.style.display = "none";
-  textArea.blur();   // make mobile keyboard dissappear
+	textArea.style.display = "none";
+	textArea.blur();   // make mobile keyboard dissappear
 }
 
 /*
@@ -1092,7 +1095,6 @@ function MenuMainRestart(pEvent, pWorldMode, pDayOfWeek, pEvening)
 	WorldChange(pWorldMode, pDayOfWeek, pEvening);
 
 	if (configMouseDisable) { try { document.body.requestPointerLock( {unadjustedMovement: true} ); } catch { } }
-	ButtonChangeState(1);
 
 	// <RESET>
 	mMenuMainPreserveWorldState = 0;
@@ -1128,7 +1130,6 @@ function MenuMainRestart(pEvent, pWorldMode, pDayOfWeek, pEvening)
 		mWeekdayLevelsRemaining = mLevels.length;
 	}
 	
-	mWorldWidth = -1; mWorldHeight = -1;
 	WorldResize(1);
 	
 	mStatNewTime = 0;
@@ -4215,10 +4216,10 @@ function TalkTypeLightSet(pStateType2)
 		{
 			mSpots.spots[index].div.style.opacity = 0.1;
 		}
-		mStatTopLeftDiv.style.display = "none";
-		mStatTopRightDiv.style.display = "none";
-		mStatBottomLeftDiv.style.display = "none";
-		mStatBottomRightDiv.style.display = "none";
+		mStatTopLeftDiv.style.visibility = "hidden";
+		mStatTopRightDiv.style.visibility = "hidden";
+		mStatBottomLeftDiv.style.visibility = "hidden";
+		mStatBottomRightDiv.style.visibility = "hidden";
 	}
 	else
 	{
@@ -4232,10 +4233,10 @@ function TalkTypeLightSet(pStateType2)
 		{
 			mSpots.spots[index].div.style.opacity = 1;
 		}
-		mStatTopLeftDiv.style.display = "";
-		mStatTopRightDiv.style.display = "";
-		mStatBottomLeftDiv.style.display = "";
-		mStatBottomRightDiv.style.display = "";
+		mStatTopLeftDiv.style.visibility = "";
+		mStatTopRightDiv.style.visibility = "";
+		mStatBottomLeftDiv.style.visibility = "";
+		mStatBottomRightDiv.style.visibility = "";
 	}
 }
 
@@ -9377,6 +9378,8 @@ function WorldResize(pType = 0)
 {
 	function StatDivResize(pStatDiv)
 	{
+		//pStatDiv.style.width = Math.floor(mWorldWidth * 0.5) + "px";
+		// pStatDiv.style.height = Math.floor(mWorldHeight * 0.5) + "px";
 		let fontSize = (mWorldWidth > mWorldHeight) ? Math.floor(mWorldHeight * 0.075) : Math.floor(mWorldWidth * 0.075);
 		pStatDiv.style.fontSize = fontSize + "px";
 		pStatDiv.style.color = "#FFFF00FF";
@@ -9396,33 +9399,39 @@ function WorldResize(pType = 0)
 	{
 		if (WorldResizeTimeoutID != -1) { window.clearTimeout(WorldResizeTimeoutID); WorldResizeTimeoutID = -1; }
 
-		// width:100% and height:100% is ambiguous across devices, causing all kinds of headaches
 		var w = parseInt(window.innerWidth), h = parseInt(window.innerHeight);
+
+		let holdTest = "";
+		if (mWord == null) { holdTest += "mWord == null;\n"; }
+		if (mWorldDiv == null) { holdTest += "mWorldDiv == null;\n"; }
+		if (holdTest != "") { alert(
+			"RESIZE PROBLEM!\n"
+			+ holdTest + "\n" + "Old:"
+			+ w + "x" + h + "\n"
+			+ mWorldWidth + "x" + mWorldHeight + "\n"
+			+ "");
+		}
+
+		// width:100% and height:100% is ambiguous across devices, causing all kinds of headaches
 		if ((w == mWorldWidth) && (h == mWorldHeight)) { return; }
 
 		mWorldWidth = w; mWorldHeight = h;
 				
-		if (mWord != null) { WordShowResize(); }
+		WordShowResize();
 
-		if (mWorldDiv != null)
-		{
-			mWorldDiv.style.width = mWorldWidth + "px";
-			mWorldDiv.style.height = mWorldHeight + "px";
+		mWorldDiv.style.width = mWorldWidth + "px";
+		mWorldDiv.style.height = mWorldHeight + "px";
 
-			mCanvasMain.width = mWorldWidth;   // do NOT use px
-			mCanvasMain.height = mWorldHeight;
+		mCanvasMain.width = mWorldWidth;   // do NOT use Style.Width, or "px"
+		mCanvasMain.height = mWorldHeight;
+		CurtainRefresh(0);
 
-			CurtainRefresh(0);
-		}
 		WorldPlayFieldResize();
-		
-		if (mStatTopLeftDiv != null)
-		{
-			StatDivResize(mStatTopLeftDiv);
-			StatDivResize(mStatTopRightDiv);
-			StatDivResize(mStatBottomLeftDiv);
-			StatDivResize(mStatBottomRightDiv);
-		}
+	
+		StatDivResize(mStatTopLeftDiv);
+		StatDivResize(mStatTopRightDiv);
+		StatDivResize(mStatBottomLeftDiv);
+		StatDivResize(mStatBottomRightDiv);
 	}
 }
 window.onresize = WorldResize;
@@ -11307,7 +11316,7 @@ function WorldResetFinish()
 	
 	let hold = (mLevelIndex == 0) ? "Start" : "";	
 
-	CopyLevelToClipboard();   // on mobile ONLY works if we're in OnTouchEnd event, otherwise ignored (only shows 1st level, not others)
+	// CopyLevelToClipboard();   // on mobile ONLY works if we're in OnTouchEnd event, otherwise ignored (only shows 1st level, not others)
 	GoogleAnalytics(hold);
 }
 
@@ -11340,7 +11349,7 @@ function StatTopLeftRefresh()
 	// Attempt 2
 	// 3 invisible tiles
 
-	mStatTopLeftDiv.innerHTML = GetLevelName(mWorldMode, mWorldEvening, mWorldDayOfWeek);
+	mStatTopLeftDiv.innerHTML = GetLevelName(mWorldMode, mWorldEvening, mWorldDayOfWeek).replace("Challenge ", "")
 
 	if (mWorldRepeatCount > 0) { mStatTopLeftDiv.innerHTML += "<BR>Attempt " + (mWorldRepeatCount + 1); }
 
@@ -11414,6 +11423,11 @@ window.onload = function()
 
 	mButtonCloseDiv = document.getElementById("ButtonClose");
 
+	mStatTopLeftDiv = document.getElementById("StatTopLeftDiv");
+	mStatTopRightDiv = document.getElementById("StatTopRightDiv");
+	mStatBottomLeftDiv = document.getElementById("StatBottomLeftDiv");
+	mStatBottomRightDiv = document.getElementById("StatBottomRightDiv");
+
 	// <SOUND>
 	// We cannot FULLY setup sound here (must be done in response to click).
 	// Locally cache all the sound effects
@@ -11456,16 +11470,16 @@ window.onload = function()
 	mWord.screenHeight = -1;   // preserve height (static variable)
 	mWord.fontSizeMain = -1;   // preserve font size (static variable)
 	mWord.tileTotal = 0;   // background word starts counting down
-	document.body.appendChild(mWord);
+	mWorldDiv.appendChild(mWord);
 	// </WORD SETUP>
 
 	mWordCurtain = document.createElement("div");
 	mWordCurtain.style.cssText = "touch-action:none; position:absolute; left:0px; top:0px; white-space:nowrap; text-align:center; background: url('') repeat;";
-	document.body.appendChild(mWordCurtain);
+	mWorldDiv.appendChild(mWordCurtain);
 
 	mWordCurtainImage = document.createElement("div");
 	mWordCurtainImage.style.cssText = "touch-action:none; position:absolute; left:0px; top:0px;";
-	document.body.appendChild(mWordCurtainImage);
+	mWorldDiv.appendChild(mWordCurtainImage);
 
 	WorldResizeUpdate();   // calls WorldResize(1) AND starts polling for the Resize change (supplments bug)
 
@@ -11608,11 +11622,6 @@ function OnLoad2(pEvent)
 	mRestart.transform = new Transform(mRestart.div);
 	// </RESTART>
 			
-	mStatTopLeftDiv	= document.getElementById("StatTopLeftDiv");
-	mStatTopRightDiv = document.getElementById("StatTopRightDiv");
-	mStatBottomLeftDiv	= document.getElementById("StatBottomLeftDiv");
-	mStatBottomRightDiv = document.getElementById("StatBottomRightDiv");
-
 	/*
 	var holdErrorMessage = "";
 	var counter = 0;
@@ -11751,7 +11760,6 @@ function OnLoad2(pEvent)
 	// Even though Daily Mantra doesn't use this, need Talks initialized for switching between "The Tale of Frank" and Daily
 	Talk3000Load();
 
-	mWorldWidth = -1; mWorldHeight = -1;
 	WorldResize(1);
 
 	/*
@@ -14851,7 +14859,7 @@ function Browser()
 					}
 				}
 				
-				// Touch Special Case: User swiped and held BEFORE enough time passed to be in instant mode.
+				// Touch Special Case: User swiped far BUT BEFORE enough time passed to be in instant mode.
 				// They're STILL holding BUT OnTouchMove won't fire anymore
 				// Check if enough time has passed to go instant
 				else if (Date.now() > this.touchStartDate)
@@ -14971,34 +14979,34 @@ function Browser_OnMouseMove(pEvent) { gBrowser.OnMouseMove(pEvent); }
 
 </HEAD>
 
-<BODY oncontextmenu="return false;">
+<BODY oncontextmenu="return false;"><DIV ID="WorldContainer">
 
 <canvas id="CanvasMain" Width=50 Height=50 Style='position:absolute; left:0px; top:0px; z-index:3;'></canvas>
 
-<DIV ID="WorldContainer">
-	<DIV Id="TextSize" Style="position:absolute; visibility:hidden; height:auto; width:auto; white-space:nowrap; text-align:center;">&nbsp;</DIV>
-	<DIV Id="mouse" Style="position:absolute; white-space:nowrap; z-index:40; font-size:80px; left:0px; top:0px; width:10px; height:10px; overflow:visible;"></DIV>
+<DIV Id="TextSize" Style="position:absolute; visibility:hidden; left:0px; top:0px; width:auto; height:auto; white-space:nowrap; text-align:center;">&nbsp;</DIV>
 
-	<DIV ID='player' Style='position:absolute; left:0px; top:0px; width:50px; height:50px; z-index:4;'>
-		<IMG ID='face00' Src='myface-01-normal.png' Style='position:absolute; left:0px; top:0px; width:100%; height:100%; visibility:hidden;'>
-		<IMG ID='face01' Src='myface-01-normal-blink.png' Style='position:absolute; left:0px; top:0px; width:100%; height:100%; visibility:hidden;'>
-		<IMG ID='face10' Src='myface-02-fail.png' Style='position:absolute; left:0px; top:0px; width:100%; height:100%; visibility:hidden;'>
-		<IMG ID='face11' Src='myface-02-fail-blink.png' Style='position:absolute; left:0px; top:0px; width:100%; height:100%; visibility:hidden;'>
-		<IMG ID='face20' Src='myface-03-afterfail.png' Style='position:absolute; left:0px; top:0px; width:100%; height:100%; visibility:hidden;'>
-		<IMG ID='face21' Src='myface-03-afterfail-blink.png' Style='position:absolute; left:0px; top:0px; width:100%; height:100%; visibility:hidden;'>
-		<IMG ID='face30' Src='myface-04-success.png' Style='position:absolute; left:0px; top:0px; width:100%; height:100%; visibility:hidden;'>
-		<IMG ID='face31' Src='myface-04-success-blink.png' Style='position:absolute; left:0px; top:0px; width:100%; height:100%; visibility:hidden;'>
-	</DIV>	
-</DIV>
+<TEXTAREA id="clipboardtextarea" contenteditable="true" Style="position:absolute; display:none; left:0px; top:0px; width:50px; height:50px; z-index:30;">stuff</TEXTAREA>
 
-<DIV ID="StatTopLeftDiv" Style='position:absolute; padding:calc(100vh * 0.05) 0px 0px calc(100vw * 0.05); margin:0px; left:0px; top:0px; z-index:2;'></DIV>
-<DIV ID="StatTopRightDiv" Style='position:absolute; padding:calc(100vh * 0.05) calc(100vw * 0.05) 0px 0px; margin:0px; right:0px; top:0px; z-index:2;'></DIV>
-<DIV ID="StatBottomLeftDiv" Style='position:absolute; padding:0px 0px calc(100vh * 0.05) calc(100vw * 0.05); margin:0px; left:0px; bottom:0px; z-index:2;'></DIV>
-<DIV ID="StatBottomRightDiv" Style='position:absolute; padding:0px calc(100vw * 0.05) calc(100vh * 0.05) 0px; margin:0px; right:0px; bottom:0px; z-index:2;'></DIV>
+<DIV Id="mouse" Style="position:absolute; visibility:hidden; white-space:nowrap; z-index:40; font-size:80px; left:0px; top:0px; width:10px; height:10px; overflow:visible;"></DIV>
 
-<DIV ID="ButtonClose" Class="ButtonClose" Style="position:absolute; padding:0px; margin:0px; left:0px; top:0px; display:none; opacity:1.0; cursor:pointer; width:50px; height:50px; background:#ff0000; background-color:#ccccff; box-sizing:border-box; border:4px solid #666666;"></DIV>
+<DIV ID='player' Style='position:absolute; left:0px; top:0px; width:50px; height:50px; z-index:4;'>
+	<IMG ID='face00' Src='myface-01-normal.png' Style='position:absolute; left:0px; top:0px; width:100%; height:100%; visibility:hidden;'>
+	<IMG ID='face01' Src='myface-01-normal-blink.png' Style='position:absolute; left:0px; top:0px; width:100%; height:100%; visibility:hidden;'>
+	<IMG ID='face10' Src='myface-02-fail.png' Style='position:absolute; left:0px; top:0px; width:100%; height:100%; visibility:hidden;'>
+	<IMG ID='face11' Src='myface-02-fail-blink.png' Style='position:absolute; left:0px; top:0px; width:100%; height:100%; visibility:hidden;'>
+	<IMG ID='face20' Src='myface-03-afterfail.png' Style='position:absolute; left:0px; top:0px; width:100%; height:100%; visibility:hidden;'>
+	<IMG ID='face21' Src='myface-03-afterfail-blink.png' Style='position:absolute; left:0px; top:0px; width:100%; height:100%; visibility:hidden;'>
+	<IMG ID='face30' Src='myface-04-success.png' Style='position:absolute; left:0px; top:0px; width:100%; height:100%; visibility:hidden;'>
+	<IMG ID='face31' Src='myface-04-success-blink.png' Style='position:absolute; left:0px; top:0px; width:100%; height:100%; visibility:hidden;'>
+</DIV>	
 
-<TEXTAREA id="clipboardtextarea" contenteditable="true" Style="position:absolute; left:0px; top:0px; z-index:30; display:none;">stuff</TEXTAREA>
+<DIV ID="StatTopLeftDiv" Style='position:absolute; left:0px; top:0px; width:auto; height:auto; padding:calc(100vh * 0.05) 0px 0px calc(100vw * 0.05); margin:0px; z-index:2;'>&nbsp;</DIV>
+<DIV ID="StatTopRightDiv" Style='position:absolute; right:0px; top:0px; width:auto; height:auto; padding:calc(100vh * 0.05) calc(100vw * 0.05) 0px 0px; margin:0px; z-index:2;'>&nbsp;</DIV>
+<DIV ID="StatBottomLeftDiv" Style='position:absolute; left:0px; bottom:0px; width:auto; height:auto; padding:0px 0px calc(100vh * 0.05) calc(100vw * 0.05); margin:0px; z-index:2;'>&nbsp;</DIV>
+<DIV ID="StatBottomRightDiv" Style='position:absolute; right:0px; bottom:0px; width:auto; height:auto; padding:0px calc(100vw * 0.05) calc(100vh * 0.05) 0px; margin:0px; z-index:2;'>&nbsp;</DIV>
+
+<DIV ID="ButtonClose" Class="ButtonClose" Style="position:absolute; visibility:hidden; padding:0px; margin:0px; left:0px; top:0px; display:none; opacity:1.0; cursor:pointer; width:50px; height:50px; background:#ff0000; background-color:#ccccff; box-sizing:border-box; border:4px solid #666666;"></DIV>
+
 
 <!--
 <DIV ID="ButtonClose" Class="ButtonClose" Style="position:absolute; padding:0px; margin:0px; left:10px; top:10px; display:none; opacity:0.5; cursor:pointer; width:53px; height:53px; background:#ff0000; background-color:#ccccff; box-sizing:border-box; border:4px solid #666666;">
@@ -15021,6 +15029,6 @@ Thought this would help cache the songs but NOPE! Appears to hurt mobile Safari 
 <AUDIO ID="musicsong9silver" Src="music-song9-silver.mp3"></AUDIO>
 -->
 
-</BODY>
+</DIV></BODY>
 </HTML>
 
