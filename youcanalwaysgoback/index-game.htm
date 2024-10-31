@@ -18,7 +18,7 @@ const urlParams = new URLSearchParams(window.location.search);
 var configCacheBreaker = Math.floor(Math.random() * 10000);
 var configDebug = 0;
 var configPaid = 1;
-var configVersion = "2024-10-29";
+var configVersion = "2024-10-31";
 var configMouseDisable = false;
 var configAnalytics = 1;
 </SCRIPT>
@@ -36,7 +36,8 @@ var configAnalytics = 1;
 </script>
 
 <!--
-2024-10-29 Remember: mWorldMode-mWorldEvening-mWorldDayOfWeek-mLevelIndex
+2024-10-29 Remember: Level Fully Defined by:
+"mWorldMode-mWorldEvening-mWorldDayOfWeek-mLevelIndex"
 	mWorldMode   0:Narrative 1:WeekDay 2:Challenges
 
 	mWorldEvening   0:DayTime   1:Evening
@@ -48,21 +49,20 @@ var configAnalytics = 1;
 		Weekdays/Challenges - starts at 0 and counts up
 		"Frank's Story" it's effectively random
 
-2024-10-25 Remove mStatNewFail count from top right
+2024-10-23 BUG. Why does Silver take so long to start on new.? Perhaps not a weekday.
+
+DONE. 2024-10-25 Remove mStatNewFail count from top right
 	innerHTML = mStatNewFail + ", " + mStatNewSolution.toLocaleString();
-
-2024-10-23 BUG. Why does Silver take so long to start? Perhaps not a weekday.
-
-2024-10-22 DONE. PINK trail should override yellow trail.
-2024-10-22 DONE. Player should leave yellow trail.
-2024-10-21 DONE. Fix Numbers background - allows SPECIAL UseTheFOrce and other messages
-2024-10-21 DONE. Ensure FINAL level uses GROW number
-2024-10-21 DONE. Copy to DayOfTheDevs, IGF AND Publisher new.bigpants.ca
+DONE. 2024-10-22 PINK trail should override yellow trail.
+DONE. 2024-10-22 Player should leave yellow trail.
+DONE. 2024-10-21 Fix Numbers background - allows SPECIAL UseTheFOrce and other messages
+DONE. 2024-10-21 Ensure FINAL level uses GROW number
+DONE. 2024-10-21 Copy to DayOfTheDevs, IGF AND Publisher new.bigpants.ca
 
 Levels: 5 Intense Levels: Chop up the super intense levels into 5+1
 (10 is just TOO much, make the +1 dense 10x10)
 
-SnakeMirror: more holes, increase regular size by 1
+SnakeMirror: more holes before mirror, lareger - increase regular size by 1
 
 ToDo:
 DONE. Check all Frank's levels pass WorldCheck (suspect they don't)
@@ -656,8 +656,7 @@ function CopyStatsToClipboard(pWorldMode, pWorldEvening)
 	if (pWorldMode > 1) { caption += "\"" + caption.replace("Challenge ", "") + "\""; }
 	text += caption + "\n";
 
-	// Totals
-	// text += "\u{1F611} Totals\n";   // is this worth an entire line?
+	if (pWorldEvening > 0) { text += "\u{1F611} Evening\n"; }
 
 	// Totals
 	let totalSteps = 0, totalTime = 0, totalFail = 0;
@@ -704,8 +703,6 @@ function CopyStatsToClipboard(pWorldMode, pWorldEvening)
 		}
 	}
 	text += "\n";
-
-	if (pWorldEvening > 0) { text += "Evening\n"; }
 
 	// Today's date
 	// text += (new Date()).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'}) + "\n";   // Dec 4, 2024
@@ -755,6 +752,8 @@ function CopySuccessToClipboard(
 		? "\"" + mUserData.weekday[pWorldDayOfWeek][pWorldEvening].captionLong + "\""
 		: mUserData.weekday[pWorldDayOfWeek][pWorldEvening].captionLong;
 	text += "\n";
+
+	if (pWorldEvening > 0) { text += "\u{1F611} Evening\n"; }
 	
 	text += "Steps: " + pStepNew.toLocaleString() + " ";		
 	if ((pStepOld == -1) || (pStepNew < pStepOld)) { text += "\u{1F601}"; } else if (pStepNew > pStepOld) { text += "\u{1F622}"; } else { text += "\u{1F611}"; }
@@ -796,8 +795,6 @@ function CopySuccessToClipboard(
 		}
 	}
 	text += "\n";
-
-	if (pWorldEvening > 0) { text += "Evening\n"; }
 
 	ClipboardCopy(text);
 }
@@ -1130,8 +1127,6 @@ function MenuMainRestart(pEvent, pWorldMode, pDayOfWeek, pEvening)
 		mWeekdayLevelsRemaining = mLevels.length;
 	}
 	
-	WorldResize(1);
-	
 	mStatNewTime = 0;
 	mStatNewSteps = 0;
 	mStatNewFail = 0;
@@ -1361,6 +1356,7 @@ function MenuFinalLevelNo(pEvent)
 function MenuFinalLevel(pEvent)
 {
 	MusicSelect();
+	// Yes and No lead to the same thing which is WAY funnier than what I originally had. Bonus: The lack of choice means keyboard fully supported
 	let innerHTML = ""
 		+ "<DIV Style='padding-bottom:3%'>FINAL LEVEL</DIV>"
 		+ "<DIV Style='font-size:40%; line-height:100%; textShadow75; color:#FFFFFF;'>"
@@ -1373,7 +1369,7 @@ function MenuFinalLevel(pEvent)
 			+ "<DIV>"
 				+ "<SPAN Style='cursor:pointer;color:#FFFF00;' " + gBrowser.inputTypeEventHTML + "='MenuFinalLevelYes(event);'>YES</SPAN>"
 				+ " &nbsp;&nbsp;&nbsp;"
-				+ " <SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='MenuFinalLevelNo(event);'>NO</SPAN>"
+				+ " <SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='MenuFinalLevelYes(event);'>NO</SPAN>"
 			+ "</DIV>"
 		+ "</DIV>";
 	return MenuShow(pEvent, innerHTML, MenuFinalLevelYes);
@@ -9373,12 +9369,28 @@ function WorldPlayFieldResize()
 	}
 }
 
-var WorldResizeTimeoutID = -1;
-function WorldResize(pType = 0)
+function WorldResizeUpdate()
 {
+	// Resize event doesn't fire on iPhone home screen (links somehow interfere)
+	// Resize event fires BEFORE onload on Android
+	// Need this custom resize polling event, every second check for resize. Hate this subsidy BUT a) IT WORKS and b) NO CHOICE.
+
+	/*
+	let holdTest = "";
+	if (mWord == null) { holdTest += "mWord == null;\n"; }
+	if (mWorldDiv == null) { holdTest += "mWorldDiv == null;\n"; }
+	if (holdTest != "") { alert(
+		"WorldResize Error: Things not initialized yet.\n"
+		+ holdTest + "\n" + "Old:"
+		+ w + "x" + h + "\n"
+		+ mWorldWidth + "x" + mWorldHeight + "\n"
+		+ "");
+	}
+	*/
 	function StatDivResize(pStatDiv)
 	{
-		//pStatDiv.style.width = Math.floor(mWorldWidth * 0.5) + "px";
+		// don't set widht and height, uses Auto and Div alignment (bottom and right) - saves us some calcs
+		// pStatDiv.style.width = Math.floor(mWorldWidth * 0.5) + "px";
 		// pStatDiv.style.height = Math.floor(mWorldHeight * 0.5) + "px";
 		let fontSize = (mWorldWidth > mWorldHeight) ? Math.floor(mWorldHeight * 0.075) : Math.floor(mWorldWidth * 0.075);
 		pStatDiv.style.fontSize = fontSize + "px";
@@ -9388,33 +9400,17 @@ function WorldResize(pType = 0)
 		pStatDiv.style.textShadow = shadowSize + "px " + shadowSize + "px " + "0px #000000FF";
 	}
 
-	// pType: 0-called from Resize Event   1-called from code
-
-	// when running as an iPhone home page app, window.innerWidth/Height NOT set properly. This event needs to finish to fix.
-	if (pType == 0)
+	var w = parseInt(window.innerWidth), h = parseInt(window.innerHeight);
+	// Note: width:100% and height:100% is ambiguous across devices, causing all kinds of headaches. So I specify everything in pixels.
+	if ((w != mWorldWidth) || (h != mWorldHeight))
 	{
-		if (WorldResizeTimeoutID == -1) { WorldResizeTimeoutID = window.setTimeout(WorldResize, 100, 1); }
-	}
-	else
-	{
-		if (WorldResizeTimeoutID != -1) { window.clearTimeout(WorldResizeTimeoutID); WorldResizeTimeoutID = -1; }
-
-		var w = parseInt(window.innerWidth), h = parseInt(window.innerHeight);
-
-		let holdTest = "";
-		if (mWord == null) { holdTest += "mWord == null;\n"; }
-		if (mWorldDiv == null) { holdTest += "mWorldDiv == null;\n"; }
-		if (holdTest != "") { alert(
-			"RESIZE PROBLEM!\n"
-			+ holdTest + "\n" + "Old:"
+		/*
+		alert("HEY"
 			+ w + "x" + h + "\n"
 			+ mWorldWidth + "x" + mWorldHeight + "\n"
-			+ "");
-		}
-
-		// width:100% and height:100% is ambiguous across devices, causing all kinds of headaches
-		if ((w == mWorldWidth) && (h == mWorldHeight)) { return; }
-
+		);
+		*/
+		
 		mWorldWidth = w; mWorldHeight = h;
 				
 		WordShowResize();
@@ -9427,21 +9423,12 @@ function WorldResize(pType = 0)
 		CurtainRefresh(0);
 
 		WorldPlayFieldResize();
-	
+
 		StatDivResize(mStatTopLeftDiv);
 		StatDivResize(mStatTopRightDiv);
 		StatDivResize(mStatBottomLeftDiv);
 		StatDivResize(mStatBottomRightDiv);
 	}
-}
-window.onresize = WorldResize;
-
-function WorldResizeUpdate()
-{
-	// Resize event doesn't fire on iPhone when link is shortcut on home page. This subsidez
-	// OnResize doesn't fire properly when it's on an iPhone home screen
-	var w = parseInt(window.innerWidth), h = parseInt(window.innerHeight);
-	if ((w != mWorldWidth) || (h != mWorldHeight)) { WorldResize(1); }
 	window.setTimeout(WorldResizeUpdate, 1000)
 }
 
@@ -11412,7 +11399,6 @@ window.onload = function()
 {		
 	// Called ONCE. Setup minimum required to show shrinking Title, then continue full slow setup in OnLoad2
 	// Consider launching more HTTP requests here to cache things while title shrinks
-
 	backgroundR = 0; backgroundG = 0; backgroundB = 0;	
 	document.body.style.backgroundColor = RGBToHex(backgroundR, backgroundG, backgroundB);	
 
@@ -11481,7 +11467,7 @@ window.onload = function()
 	mWordCurtainImage.style.cssText = "touch-action:none; position:absolute; left:0px; top:0px;";
 	mWorldDiv.appendChild(mWordCurtainImage);
 
-	WorldResizeUpdate();   // calls WorldResize(1) AND starts polling for the Resize change (supplments bug)
+	WorldResizeUpdate();   // Resizes AND starts polling for the Resize change (supplments bug)
 
 	CurtainRefresh(2);
 	WordShow("YOU <SPAN Style='color:#FFFFFFFF;'>CAN</SPAN><BR>ALWAYS<BR><SPAN Style='color:#FFFFFFFF;'>GO</SPAN> BACK", undefined, undefined, 2, -1);
@@ -11759,8 +11745,6 @@ function OnLoad2(pEvent)
 
 	// Even though Daily Mantra doesn't use this, need Talks initialized for switching between "The Tale of Frank" and Daily
 	Talk3000Load();
-
-	WorldResize(1);
 
 	/*
 	// ----------------------------------------------- debug
@@ -12601,6 +12585,7 @@ function WorldUpdate(pTimeStamp = 100)
 {
 	if (mWorldState == 0) { return; }
 
+	// <FOCUS>
 	// Catches the cases "VisibilityChange" doesn't (browser loses focus to smaller window in front)
 	if (mLevelGenerate == null)
 	{
@@ -12623,6 +12608,7 @@ function WorldUpdate(pTimeStamp = 100)
 			mWorldFocus = 1;
 		}
 	}
+	// </FOCUS>
 
 	console.assert(!mWorldUpdateCalled, "WorldUpdate() called WHILE WorldUpdate going.");	
 	mWorldUpdateCalled = true;
@@ -12703,13 +12689,13 @@ function WorldUpdate(pTimeStamp = 100)
 				if ( (mState == 2) && (mSolutions != -1) && (!mStatePushPopped) )
 				{
 					mStatNewSolution = mSolutions;
-					innerHTML = mStatNewFail + ", " + mStatNewSolution.toLocaleString();
+					innerHTML = mStatNewSolution.toLocaleString();
 				}
 				else
 				{
 					// we may have found 1 solution but NOT all solutions (indicate with ?)
 					if (mSolutions > mStatNewSolution) { mStatNewSolution = mSolutions; }
-					innerHTML = mStatNewFail + ", " + mStatNewSolution.toLocaleString() + "?";
+					innerHTML = mStatNewSolution.toLocaleString() + "?";
 				}
 				if (mStatTopRightDiv.innerHTML != innerHTML) { mStatTopRightDiv.innerHTML = innerHTML; }
 			}
@@ -13014,7 +13000,7 @@ function WorldUpdate(pTimeStamp = 100)
 		*/
 
 		// Increase Time if mWorldState is NOT celebrating, mState is NOT FAILED, Word is DONE flying in.
-		if ((mWorldMode > 0) && (mWorldState == 1) && (mState != 1) && (mWord.aliveRemember == 0) && (mUseTheForceState == 0) )
+		if ((mWorldMode > 0) && (mWorldState == 1) && (mState != 1) && (mWorldFreezeTime == 0) && (mWord.aliveRemember == 0) && (mUseTheForceState == 0) )
 		{
 			mStatNewTime += 1;   // each unit = 1/60th of a second
 			mStatBottomLeftDiv.innerHTML = FormatTime(mStatNewTime);
@@ -13023,7 +13009,7 @@ function WorldUpdate(pTimeStamp = 100)
 
 	// if ((document.hidden) || (document.visibilityState == "hidden")) unncessary since requestAnimationFrame automatically disabled when page loses focus		
 	if (requestFrame) { requestAnimationFrame(WorldUpdate); }
-	mWorldUpdateCalled = false;	
+	mWorldUpdateCalled = false;		
 }
 // </WORLD>
 
