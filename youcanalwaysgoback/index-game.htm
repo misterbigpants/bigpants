@@ -18,7 +18,7 @@ const urlParams = new URLSearchParams(window.location.search);
 var configCacheBreaker = Math.floor(Math.random() * 10000);
 var configDebug = 0;
 var configPaid = 1;
-var configVersion = "2024-10-31";
+var configVersion = "2024-11-01";
 var configMouseDisable = false;
 var configAnalytics = 1;
 </SCRIPT>
@@ -36,6 +36,9 @@ var configAnalytics = 1;
 </script>
 
 <!--
+2024-10-31 Apply OnTouchEnd TouchState approach to held down and released keys and mouse Buttons
+	right now holding a key and finishing then waiting then letting go "bleeds" the keyup event into the next section
+
 2024-10-29 Remember: Level Fully Defined by:
 "mWorldMode-mWorldEvening-mWorldDayOfWeek-mLevelIndex"
 	mWorldMode   0:Narrative 1:WeekDay 2:Challenges
@@ -165,6 +168,12 @@ padding-bottom:calc(100vh * 0.035);
 <SCRIPT>
 "use strict"; 
 
+var mButtonCloseDiv = {};
+mButtonCloseDiv.visibility = 0;
+mButtonCloseDiv.width = -1;
+mButtonCloseDiv.height = -1;
+mButtonCloseDiv.opacity = -1;
+
 var mWeekdayCutoffMilliseconds = 0;   // # of seconds since epoch (Date.now)
 try
 {
@@ -216,24 +225,42 @@ var mWorldFreezeTime = 0;   // all input is ignored until FreezeTime returns to 
 // ------------------------------------------------------------------------------------------------------
 // <MISCELLANEOUS>
 // ------------------------------------------------------------------------------------------------------
+function ButtonDraw()
+{
+	if (mButtonCloseDiv.visibility > 0)
+	{
+		let holdFillStyle = mCanvasMainContext.fillStyle;
+		let holdStrokeStyle = mCanvasMainContext.strokeStyle;
+		
+		let lineWidth = 4;
+		mCanvasMainContext.beginPath();	
+		mCanvasMainContext.rect(lineWidth / 2, lineWidth / 2, Math.floor(mButtonCloseDiv.width), Math.floor(mButtonCloseDiv.height));
+		mCanvasMainContext.fillStyle = "rgba(192, 192, 192, " + mButtonCloseDiv.opacity + ")";
+		mCanvasMainContext.fill();
+		
+		mCanvasMainContext.strokeStyle = "rgba(255, 255, 255, " + mButtonCloseDiv.opacity + ")";
+		mCanvasMainContext.lineWidth = lineWidth;
+		mCanvasMainContext.stroke();
+		
+		mCanvasMainContext.fillStyle = holdFillStyle;
+		mCanvasMainContext.strokeStyle = holdStrokeStyle;
+	}
+}
 function ButtonUpdate()
 {
-	if (
-		(mButtonCloseDiv.style.display == "")
-		&& (mButtonCloseDiv.style.visibility == "")
-	)
+	if (mButtonCloseDiv.visibility > 0)
 	{
-		if (parseInt(mButtonCloseDiv.style.width) > 50)
+		if (mButtonCloseDiv.width > 50)
 		{
-			mButtonCloseDiv.style.width = Math.floor(parseInt(mButtonCloseDiv.style.width) * 0.99) + "px";
-			if (mButtonCloseDiv.style.width <= 50) { mButtonCloseDiv.style.width = "50px"; }
-			mButtonCloseDiv.style.height = mButtonCloseDiv.style.width;
+			mButtonCloseDiv.width = mButtonCloseDiv.width * 0.99;
+			if (mButtonCloseDiv.width <= 50) { mButtonCloseDiv.width = 50; }
+			mButtonCloseDiv.height = mButtonCloseDiv.width;
 		}
-		
-		if (mButtonCloseDiv.style.opacity > 0)
+
+		if (mButtonCloseDiv.opacity > 0)
 		{
-			mButtonCloseDiv.style.opacity -= 0.001;
-			if (mButtonCloseDiv.style.opacity < 0.01) {  mButtonCloseDiv.style.visibility = "hidden"; }
+			mButtonCloseDiv.opacity -= 0.001;
+			if (mButtonCloseDiv.opacity < 0.1) {  mButtonCloseDiv.visibility = 0; }
 		}
 	}
 }
@@ -243,20 +270,25 @@ function ButtonChangeState(pState = 0)
 	// 0:Hide
 	if (pState == 0)
 	{
-		if (mButtonCloseDiv.style.display != "none") { mButtonCloseDiv.style.display = "none"; }
+		if (mButtonCloseDiv.visibility != 0)
+		{
+			mButtonCloseDiv.width = 50;
+			mButtonCloseDiv.height = 50;
+			mButtonCloseDiv.opacity = 1.0;
+			mButtonCloseDiv.visibility = 0;
+		}
 	}
 	
 	// 1:Show
 	else
 	{
-		if (mButtonCloseDiv.style.display == "none")
+		if (mButtonCloseDiv.visibility == 0)
 		{
 			let size = (mWorldWidth < mWorldHeight) ? Math.floor(mWorldWidth * 0.5) : Math.floor(mWorldHeight * 0.5)
-			mButtonCloseDiv.style.width = size + "px";
-			mButtonCloseDiv.style.height = size + "px";
-			mButtonCloseDiv.style.opacity = 1.0;
-			mButtonCloseDiv.style.visibility = "";
-			mButtonCloseDiv.style.display = "";
+			mButtonCloseDiv.width = size;
+			mButtonCloseDiv.height = size;
+			mButtonCloseDiv.opacity = 1.0;
+			mButtonCloseDiv.visibility = 1;
 		}
 	}
 }
@@ -289,8 +321,6 @@ function GetDayEvening()
 
 function IsWeekdayEnabled()
 {
-	return true;
-
 	// Current Date + Evening (copied from GetDayEvening)
 	let holdDate = new Date();
 	// let holdDate = new Date("Oct 24 2024 9:00:00 GMT-0400");
@@ -426,9 +456,9 @@ function MenuShow2(pEvent, pInnerHTML, pWorldClick = null, pCurtainImageInnerHTM
 {
 	if (configMouseDisable) { try { document.exitPointerLock(); } catch { }; }
 	
+	ButtonChangeState(0);	
 	mWord.style.display = "";   // "Tale of Frank" turns out lights, which sets mWord.display = "none"
 	mWorldState = 0;   // stop game from running
-	ButtonChangeState(0);   // code is unable to support menu button when menu is displayed, so hide
 	CurtainRefresh(1);
 
 	pInnerHTML = "<DIV Style='margin:0px; padding:0px 50px 10px 50px;'>" + pInnerHTML + "</DIV>";
@@ -467,7 +497,6 @@ function MenuMainResume(pEvent, pWorldState)
 	mMenuMainPreserveWorldState = 0;
 
 	if (configMouseDisable) { try { document.body.requestPointerLock( {unadjustedMovement: true} ); } catch { } }
-	ButtonChangeState(1);
 	CurtainRefresh(2);
 
 	mWorldState = pWorldState;
@@ -4704,9 +4733,6 @@ var mTileSize = 0, mTileSize2 = 0;
 
 var backgroundR = 0, backgroundG = 0, backgroundB = 0;
 
-
-var mButtonCloseDiv = null;
-
 var mStatTopLeftDiv = null;
 var mStatTopRightDiv = null;
 var mStatBottomLeftDiv = null;
@@ -7642,7 +7668,9 @@ function TilesUpdate()
 	else
 	{
 		let holdStrokeStyle = mCanvasMainContext.strokeStyle;
-	
+
+		ButtonDraw();
+		
 		if (mWorldWidth > 500)
 		{
 			// <DRAW SHADOW>
@@ -7756,6 +7784,7 @@ function TilesUpdate()
 
 				// ellipse applies to BOTH stroke and fill, doing one for each requires sepearte BeginPath likely defeating the purpose
 				// ellipse strokes / fills from center. subpixels were happending (border overlap aliasing) regardless of parseInt, so removed
+				// ellipse should be far slower than .rect or drawImage from an offscreen, but testing showed it made little difference
 				mCanvasMainContext.ellipse(
 					tileT.jimLeft
 					, tileT.jimTop
@@ -7763,6 +7792,15 @@ function TilesUpdate()
 					, tileT.jimHeight * 0.5
 					, 0, 0, 2 * Math.PI
 				);
+				
+				/*
+				mCanvasMainContext.rect(
+					Math.floor(tileT.jimLeft - tileT.jimWidth * 0.5)
+					, Math.floor(tileT.jimTop - tileT.jimHeight * 0.5)
+					, Math.floor(tileT.jimWidth)
+					, Math.floor(tileT.jimHeight)
+				);
+				*/
 
 				let holdLineWidth = tileT.jimWidth * 0.1;
 				if (holdLineWidth < 1) { holdLineWidth = 1; }
@@ -11059,8 +11097,6 @@ function WorldResetFinish()
 	mRememberPlayerXYIndex = mPlayer.xyIndex;
 	
 	if (configMouseDisable) { try { document.body.requestPointerLock( {unadjustedMovement: true} ); } catch { } }
-	ButtonChangeState(1);
-	mButtonCloseDiv.style.display = "";
 
 	// <FINALTILE>
 	// Each answer contains one finalTile - set it (SolveUpdate would find this eventually)
@@ -11301,9 +11337,10 @@ function WorldResetFinish()
 		}
 	}
 	
-	let hold = (mLevelIndex == 0) ? "Start" : "";	
+	ButtonChangeState(1);
 
 	// CopyLevelToClipboard();   // on mobile ONLY works if we're in OnTouchEnd event, otherwise ignored (only shows 1st level, not others)
+	let hold = (mLevelIndex == 0) ? "Start" : "";	
 	GoogleAnalytics(hold);
 }
 
@@ -11406,8 +11443,6 @@ window.onload = function()
 
 	mCanvasMain = document.getElementById("CanvasMain");
 	mCanvasMainContext = mCanvasMain.getContext("2d");
-
-	mButtonCloseDiv = document.getElementById("ButtonClose");
 
 	mStatTopLeftDiv = document.getElementById("StatTopLeftDiv");
 	mStatTopRightDiv = document.getElementById("StatTopRightDiv");
@@ -14379,7 +14414,7 @@ function Browser()
 	{
 		if (pEvent.keyCode == 27)
 		{
-			if (mButtonCloseDiv.style.display == "") { MenuMain(null, mWorldState); }
+			if (mWorldState == 1) { MenuMain(null, mWorldState); }
 		}
 	
 		else if (mWorldClick != null)
@@ -14492,9 +14527,9 @@ function Browser()
 
 		let hold = this.GetMousePosition(pEvent);
 		if (
-			(mButtonCloseDiv.style.display == "")
-			&& (hold[0] < parseInt(mButtonCloseDiv.style.width))
-			&& (hold[1] < parseInt(mButtonCloseDiv.style.height))
+			(mWorldState == 1)
+			&& (hold[0] < 50)
+			&& (hold[1] < 50)
 		)			
 		{
 			// handled by OnMouseUp
@@ -14579,9 +14614,9 @@ function Browser()
 	{	
 		let hold = this.GetMousePosition(pEvent);
 		if (
-			(mButtonCloseDiv.style.display == "")
-			&& (hold[0] < parseInt(mButtonCloseDiv.style.width))
-			&& (hold[1] < parseInt(mButtonCloseDiv.style.height))
+			(mWorldState == 1)
+			&& (hold[0] < 50)
+			&& (hold[1] < 50)
 		)			
 		{
 			// handled by OnMouseUp
@@ -14611,9 +14646,9 @@ function Browser()
 		if (mButtonCloseDiv != null)
 		{
 			if (
-				(mButtonCloseDiv.style.display == "")
-				&& (pEvent.clientX < parseInt(mButtonCloseDiv.style.width))
-				&& (pEvent.clientY < parseInt(mButtonCloseDiv.style.height))
+				(mWorldState == 1)
+				&& (pEvent.clientX < 50)
+				&& (pEvent.clientY < 50)
 			)			
 			{
 				MenuMain(null, mWorldState);
@@ -14738,9 +14773,9 @@ function Browser()
 		}
 		
 		if (
-			(mButtonCloseDiv.style.display == "")
-			&& (parseInt(pEvent.touches[0].pageX) < parseInt(mButtonCloseDiv.style.width) * 1.2)
-			&& (parseInt(pEvent.touches[0].pageY) < parseInt(mButtonCloseDiv.style.height) * 1.2)
+			(mWorldState == 1)
+			&& (parseInt(pEvent.touches[0].pageX) < 50 * 1.2)
+			&& (parseInt(pEvent.touches[0].pageY) < 50 * 1.2)
 		)
 		{
 			// handled by OnTouchEnd
@@ -14805,9 +14840,9 @@ function Browser()
 		{
 			if (
 				(this.touchState == 1)
-				&& (mButtonCloseDiv.style.display == "")
-				&& (this.touchCurrentX < parseInt(mButtonCloseDiv.style.width) * 1.2)
-				&& (this.touchCurrentY < parseInt(mButtonCloseDiv.style.height) * 1.2)
+				&& (mWorldState == 1)
+				&& (this.touchCurrentX < 50 * 1.2)
+				&& (this.touchCurrentY < 50 * 1.2)
 			)
 			{
 				// handled by OnTouchEnd
@@ -14862,9 +14897,9 @@ function Browser()
 		{
 			if (
 				(this.touchState == 1)
-				&& (mButtonCloseDiv.style.display == "")
-				&& (parseInt(pEvent.touches[0].pageX) < parseInt(mButtonCloseDiv.style.width) * 1.2)
-				&& (parseInt(pEvent.touches[0].pageY) < parseInt(mButtonCloseDiv.style.height) * 1.2)
+				&& (mWorldState == 1)
+				&& (parseInt(pEvent.touches[0].pageX) < 50 * 1.2)
+				&& (parseInt(pEvent.touches[0].pageY) < 50 * 1.2)
 			)
 			{
 				// handled by OnTouchEnd
@@ -14899,9 +14934,9 @@ function Browser()
 		{
 			if (
 				(this.touchState == 1)
-				&& (mButtonCloseDiv.style.display == "")
-				&& (pEvent.changedTouches[0].pageX < parseInt(mButtonCloseDiv.style.width) * 1.2)
-				&& (pEvent.changedTouches[0].pageY < parseInt(mButtonCloseDiv.style.height) * 1.2)
+				&& (mWorldState == 1)
+				&& (pEvent.changedTouches[0].pageX < 50 * 1.2)
+				&& (pEvent.changedTouches[0].pageY < 50 * 1.2)
 			)
 			{
 				this.touchState = 0; MenuMain(null, mWorldState);
@@ -14986,12 +15021,10 @@ function Browser_OnMouseMove(pEvent) { gBrowser.OnMouseMove(pEvent); }
 	<IMG ID='face31' Src='myface-04-success-blink.png' Style='position:absolute; left:0px; top:0px; width:100%; height:100%; visibility:hidden;'>
 </DIV>	
 
-<DIV ID="StatTopLeftDiv" Style='position:absolute; left:0px; top:0px; width:auto; height:auto; padding:calc(100vh * 0.05) 0px 0px calc(100vw * 0.05); margin:0px; z-index:2;'>&nbsp;</DIV>
-<DIV ID="StatTopRightDiv" Style='position:absolute; right:0px; top:0px; width:auto; height:auto; padding:calc(100vh * 0.05) calc(100vw * 0.05) 0px 0px; margin:0px; z-index:2;'>&nbsp;</DIV>
-<DIV ID="StatBottomLeftDiv" Style='position:absolute; left:0px; bottom:0px; width:auto; height:auto; padding:0px 0px calc(100vh * 0.05) calc(100vw * 0.05); margin:0px; z-index:2;'>&nbsp;</DIV>
-<DIV ID="StatBottomRightDiv" Style='position:absolute; right:0px; bottom:0px; width:auto; height:auto; padding:0px calc(100vw * 0.05) calc(100vh * 0.05) 0px; margin:0px; z-index:2;'>&nbsp;</DIV>
-
-<DIV ID="ButtonClose" Class="ButtonClose" Style="position:absolute; visibility:hidden; padding:0px; margin:0px; left:0px; top:0px; display:none; opacity:1.0; cursor:pointer; width:50px; height:50px; background:#ff0000; background-color:#ccccff; box-sizing:border-box; border:4px solid #666666;"></DIV>
+<DIV ID="StatTopLeftDiv" Style='position:absolute; visibility:hidden; left:0px; top:0px; width:auto; height:auto; padding:calc(100vh * 0.05) 0px 0px calc(100vw * 0.05); margin:0px; z-index:2;'>&nbsp;</DIV>
+<DIV ID="StatTopRightDiv" Style='position:absolute; visibility:hidden; right:0px; top:0px; width:auto; height:auto; padding:calc(100vh * 0.05) calc(100vw * 0.05) 0px 0px; margin:0px; z-index:2;'>&nbsp;</DIV>
+<DIV ID="StatBottomLeftDiv" Style='position:absolute; visibility:hidden; left:0px; bottom:0px; width:auto; height:auto; padding:0px 0px calc(100vh * 0.05) calc(100vw * 0.05); margin:0px; z-index:2;'>&nbsp;</DIV>
+<DIV ID="StatBottomRightDiv" Style='position:absolute; visibility:hidden; right:0px; bottom:0px; width:auto; height:auto; padding:0px calc(100vw * 0.05) calc(100vh * 0.05) 0px; margin:0px; z-index:2;'>&nbsp;</DIV>
 
 
 <!--
