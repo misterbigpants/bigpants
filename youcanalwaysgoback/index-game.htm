@@ -18,7 +18,7 @@ const urlParams = new URLSearchParams(window.location.search);
 var configCacheBreaker = Math.floor(Math.random() * 10000);
 var configDebug = 0;
 var configPaid = 1;
-var configVersion = "2024-11-01";
+var configVersion = "2024-11-04";
 var configMouseDisable = false;
 var configAnalytics = 1;
 </SCRIPT>
@@ -36,9 +36,69 @@ var configAnalytics = 1;
 </script>
 
 <!--
+TODO: Extreme: Group0: Extra added BUT need to be re-exported to files.
+TODO: Extreme:DayTime: ADD Extra, then create files
+
+Remove SolveUpdate error trap.
+
+new Leverl: Invisible: Eliminate line
+new level: Invisible: Eliminate 1/3rd strip (vertical or horizontal)
+ideally there's 2 islands you can launch yourself across
+(humans being able to design invisible tiles would be very VERY interesting)
+
+new group: holidays
+christmas
+easter
+halloween
+my birthday
+valentine's day
+father's day
+mother's day
+
+2024-11-02 Something wrong with Bonus
+
+2024-11-02 MenuRestart, WorldResetFinish and WorldLevelReset should be ALL the same.
+	Call a method and pass it 1, 2 or 3
+
+2024-11-02 WorldResetUpdate needs to be fixed (player drawn, etc.). Needs to share SAME TilesUpdate rather than it's own
+
+2024-11-02 Player without light needs fix.
+
+2024-11-02 Might be able to draw the Restart/Hole. There would be NO NEED for div.
+	Don't need offscreen canvas, just want to remove the DIV.
+
 2024-10-31 Apply OnTouchEnd TouchState approach to held down and released keys and mouse Buttons
 	right now holding a key and finishing then waiting then letting go "bleeds" the keyup event into the next section
 
+2024-11-02 Playback needs a PlaybackPlayer class, rather than creating a function for every player.
+
+2024-11-02 Put all player images into 1 canvas 
+
+2024-11-03 Fix Level spec - Weekday # should be relative to group. Fix File names.
+
+2024-11-03 Check: important: ensure frankwins don't increase/save unless doing frank's story
+
+2024-11-03 Bug: Frank's Story: since level is wins + losses, it changes when failstuck happens
+
+DONE. fix use the force rollback
+
+DONE. 2024-10-05. Fixed. fix "use the force". Reset missing
+
+DONE. 2024-10-05. check this works: winning doesn't change anything, losing does... whatevs
+
+DONE. Tweaked. 2024-11-02 FIX SPOTS
+
+DONE. 2024-11-02 FINISH RebuildTile (seems to make a difference)
+
+DONE. Make .Blinking. 2024-11-02 CONSIDER level where tiles turn off. looked freaking AMAZING.
+
+DONE. 2024-11-02 Player growing larger & decreasing starts to use low rez. Just check width and swith.
+
+DONE. 2024-11-02 Players. Draw Pink THEN Draw regular.
+
+DONE. 2024-11-02 CanvasOffscreenSpot - should just be one of the Faces
+
+// -------------------------------------------------------------------------
 2024-10-29 Remember: Level Fully Defined by:
 "mWorldMode-mWorldEvening-mWorldDayOfWeek-mLevelIndex"
 	mWorldMode   0:Narrative 1:WeekDay 2:Challenges
@@ -51,6 +111,7 @@ var configAnalytics = 1;
 	mLevelIndex
 		Weekdays/Challenges - starts at 0 and counts up
 		"Frank's Story" it's effectively random
+// -------------------------------------------------------------------------
 
 2024-10-23 BUG. Why does Silver take so long to start on new.? Perhaps not a weekday.
 
@@ -168,12 +229,14 @@ padding-bottom:calc(100vh * 0.035);
 <SCRIPT>
 "use strict"; 
 
-// Offscreen canvases contain images sized to the current level, hoping for a perfect drawImage without scaling
-var mCanvasOffscreenSpot = document.createElement('canvas');
-var mCanvasOffscreenSpotContext = mCanvasOffscreenSpot.getContext('2d');
+var mDebugToggle = 0;
 
+// Offscreen canvases contain images sized to the current level, hoping for a perfect drawImage without scaling
 var mCanvasOffscreenPlayer = document.createElement('canvas');
 var mCanvasOffscreenPlayerContext = mCanvasOffscreenPlayer.getContext('2d');
+
+var mCanvasOffscreenTile = document.createElement('canvas');
+var mCanvasOffscreenTileContext = mCanvasOffscreenTile.getContext('2d');
 
 var mButtonCloseDiv = {};
 mButtonCloseDiv.visibility = 0;
@@ -702,7 +765,7 @@ function CopyStatsToClipboard(pWorldMode, pWorldEvening)
 	// Weekday   "II: Samey"    (adding "Evening" splits across lines)
 	text += "\u{1F611} ";
 	let caption = mWorldModeMeta[pWorldMode].caption;
-	if (pWorldMode > 1) { caption += "\"" + caption.replace("Challenge ", "") + "\""; }
+	if (pWorldMode > 1) { caption = "\"" + caption.replace("Challenge ", "") + "\""; }
 	text += caption + "\n";
 
 	if (pWorldEvening > 0) { text += "\u{1F611} Evening\n"; }
@@ -804,15 +867,18 @@ function CopySuccessToClipboard(
 
 	if (pWorldEvening > 0) { text += "\u{1F611} Evening\n"; }
 	
-	text += "Steps: " + pStepNew.toLocaleString() + " ";		
+	text += "Steps: " + pStepNew.toLocaleString() + " ";
+	// happy   sad   unimpressed
 	if ((pStepOld == -1) || (pStepNew < pStepOld)) { text += "\u{1F601}"; } else if (pStepNew > pStepOld) { text += "\u{1F622}"; } else { text += "\u{1F611}"; }
 	text += "\n";
 
 	text += "Time: " + FormatTime(pTimeNew, false) + " ";
-	if ((pTimeOld == -1) || (pTimeNew < pTimeOld)) { text += "\u{1F601}"; } else if (pTimeNew > pTimeOld) { text += "\u{1F622}"; } else { text += "\u{1F611}"; }
+	// happy   sad   shocked
+	if ((pTimeOld == -1) || (pTimeNew < pTimeOld)) { text += "\u{1F601}"; } else if (pTimeNew > pTimeOld) { text += "\u{1F622}"; } else { text += "\u{1F632}"; }
 	text += "\n";
 
 	text += "Failed: " + pFailCountNew.toLocaleString() + " ";
+	// happy   sad   unimpressed
 	if ((pFailCountOld == -1) || (pFailCountNew < pFailCountOld)) { text += "\u{1F601}"; } else if (pFailCountNew > pFailCountOld) { text += "\u{1F622}"; } else { text += "\u{1F611}"; }
 	text += "\n";
 
@@ -894,26 +960,38 @@ function CopyLevelToClipboard()
 
 	function puzzleFlipped()
 	{
+		text += "\u{2780}".repeat(mTileYCount + 2) + '\n';
+	
+		let line = "";
 		for (var x = 0; x < mTileXCount; x++)
 		{
+			line = "";
 			for (var y = 0; y < mTileYCount; y++)
 			{
-				text += puzzleGetCharacter(x, y, true);
+				line += puzzleGetCharacter(x, y, true);
 			}
-			text += '\n';
+			text += "\u{2780}" + line + "\u{2780}" + '\n';
 		}
+
+		text += "\u{2780}".repeat(mTileYCount + 2) + '\n';
 	}
 	
 	function puzzle()
 	{
+		text += "\u{2780}".repeat(mTileXCount + 2) + '\n';
+	
+		let line = "";
 		for (var y = 0; y < mTileYCount; y++)
 		{
+			line = "";
 			for (var x = 0; x < mTileXCount; x++)
 			{
-				text += puzzleGetCharacter(x, y, false);
+				line += puzzleGetCharacter(x, y, false);
 			}
-			text += '\n';
+			text += "\u{2780}" + line + "\u{2780}" + '\n';
 		}
+
+		text += "\u{2780}".repeat(mTileXCount + 2) + '\n';
 	}
 	// <PUZZLE>
 
@@ -1051,26 +1129,43 @@ function CopyLevelToClipboard()
 	
 	function answerFlipped(pType)
 	{
+		let empty = (pType == 1) ? '\u{25CE}' : '\u{FF0D}';
+		
+		text += empty.repeat(mTileYCount + 2) + '\n';
+	
+		let line = "";
 		for (var x = 0; x < mTileXCount; x++)
 		{
+			line = "";
 			for (var y = 0; y < mTileYCount; y++)
 			{
-				text += answerGetCharacter(x, y, true, pType);
+				line += answerGetCharacter(x, y, true, pType);
 			}
-			text += '\n';
+			text += empty + line + empty + '\n';
 		}
+
+		text += empty.repeat(mTileYCount + 2) + '\n';
 	}
 	
 	function answer(pType)
 	{
+		let empty = (pType == 1) ? '\u{25CE}' : '\u{FF0D}';
+		
+		text += empty.repeat(mTileXCount + 2) + '\n';
+
+		let line = "";
 		for (var y = 0; y < mTileYCount; y++)
 		{
+			line = "";
 			for (var x = 0; x < mTileXCount; x++)
 			{
-				text += answerGetCharacter(x, y, false, pType);
+				line += answerGetCharacter(x, y, false, pType);
 			}
-			text += '\n';
+
+			text += empty + line + empty + '\n';
 		}
+
+		text += empty.repeat(mTileXCount + 2) + '\n';
 	}
 	// </ANSWER>
 	
@@ -1085,6 +1180,7 @@ function CopyLevelToClipboard()
 	// Need to match CURRENT orientation of Tiles for it to be helpful
 	// On an iPhone () the answer will look different than PC (Flipped)
 	// https://www.compart.com/en/unicode/U+25F7
+	// This routine adds an EMPTY border around the playfield (lacks the framing a screen provides)
 
 	if (mWorldFlipped)
 	{
@@ -1312,9 +1408,9 @@ function MenuMain(pEvent, pMenuMainPreserveWorldState = -1)
 	// </WEEKDAY>
 
 	// <CHALLENGES>
-	for (let index = 2; index < 4; index++)
+	for (let index = 2; index < 5; index++)
 	{
-		let padding = (index == 3) ? "6%" : "3%";
+		let padding = (index == 4) ? "6%" : "3%";
 		innerHTML += "<DIV Style='padding-bottom:" + padding + "; color:#FFFF00;'>"
 			+ "<SPAN Style='cursor:pointer;' " + gBrowser.inputTypeEventHTML + "='MenuChallenges(event, " + index + ");'>"
 			+ mWorldModeMeta[index].caption.toUpperCase() + eveningCaption
@@ -2074,8 +2170,9 @@ var mWorldModeMeta = [];
 mWorldModeMeta[0] = {}; mWorldModeMeta[0].caption = "Frank's Story";
 mWorldModeMeta[1] = {}; mWorldModeMeta[1].caption = "Weekdays";
 mWorldModeMeta[2] = {}; mWorldModeMeta[2].caption = "Challenge I: Unique";
-mWorldModeMeta[3] = {}; mWorldModeMeta[3].caption = "Challenge II: Samey";
+mWorldModeMeta[3] = {}; mWorldModeMeta[3].caption = "Challenge II: Whut";
 mWorldModeMeta[4] = {}; mWorldModeMeta[4].caption = "Challenge III: Extreme";
+mWorldModeMeta[5] = {}; mWorldModeMeta[5].caption = "Challenge IV: Easy";
 
 function UserData()
 {
@@ -2087,7 +2184,7 @@ function UserData()
 		// MUST ONLY BE CALLED BY WorldChange. mWorldEvening MUST stay in sync with SaveCurrentDay
 		// otherwise could play Daytime and save Evening
 		let d = null;
-		for (let index = 0; index < 28; index++)   // 0=Sunday, 6=Sat
+		for (let index = 0; index < (mWorldModeMeta.length - 2) * 7; index++)   // 0=Sunday, 6=Sat
 		{
 			this.weekday[index] = new Array(2);   // short form doesn't allow length (which might not do anything)
 
@@ -2113,218 +2210,51 @@ function UserData()
 				}
 				else
 				{
-					switch (index)
-					{
+					let holdCaption = [
 
-					// <CHALLENGE I>
-					// Level0007.json - 0013.json
-					case 7:
-					{
-						if (evening == 0)
-						{
-							this.weekday[index][evening].caption = "EZ";
-							this.weekday[index][evening].captionLong = "Easy Living";
-						}
-						else
-						{
-							this.weekday[index][evening].caption = "Weezy";
-							this.weekday[index][evening].captionLong = "Weezy Wiving";
-						}
-						break;
-					}
-					case 8:
-					{
-						if (evening == 0)
-						{
-							this.weekday[index][evening].caption = "Long";
-							this.weekday[index][evening].captionLong = "Lonnng";
-						}
-						else
-						{
-							this.weekday[index][evening].caption = "Bolong";
-							this.weekday[index][evening].captionLong = "Bolonnnnnnng";
-						}
-						break;
-					}
-					case 9:
-					{
-						if (evening == 0)
-						{
-							this.weekday[index][evening].caption = "Paths";
-							this.weekday[index][evening].captionLong = "Paths";
-						}
-						else
-						{
-							this.weekday[index][evening].caption = "Ack Ack";
-							this.weekday[index][evening].captionLong = "Ack Ack Ack";
-						}
-						break;
-					}
-					case 10:
-					{
-						if (evening == 0)
-						{
-							this.weekday[index][evening].caption = "Limit";
-							this.weekday[index][evening].captionLong = "Limited Options";
-						}
-						else
-						{
-							this.weekday[index][evening].caption = "Severely";
-							this.weekday[index][evening].captionLong = "Severely Limited";
-						}						
-						break;
-					}
-					case 11:
-					{
-						if (evening == 0)
-						{
-							this.weekday[index][evening].caption = "Abound";
-							this.weekday[index][evening].captionLong = "Abundance";
-						}
-						else
-						{
-							this.weekday[index][evening].caption = "Pound";
-							this.weekday[index][evening].captionLong = "Pound Cake";
-						}
-						break;
-					}
-					case 12:
-					{
-						if (evening == 0)
-						{
-							this.weekday[index][evening].caption = "Mirror";
-							this.weekday[index][evening].captionLong = "Mirrored";						
-						}
-						else
-						{
-							this.weekday[index][evening].caption = "Cracked";
-							this.weekday[index][evening].captionLong = "Mirror In The Bathroom";
-						}
-						break;
-					}
-					case 13:
-					{
-						if (evening == 0)
-						{
-							this.weekday[index][evening].caption = "FunBags";
-							this.weekday[index][evening].captionLong = "Fun Bags";
-						}
-						else
-						{
-							this.weekday[index][evening].caption = "FunFunBags";
-							this.weekday[index][evening].captionLong = "Fun Bags O' Fun";
-						}
-						break;
-					}
-					// </CHALLENGE I>
+						// Challenge1: Unique
+						// Level0007.json - 0013.json
+						"EZ", "Easy Living", "Weezy", "Weezy Wiving"
+						, "Long", "Lonnng", "Bolong", "Bolonnnnnng"
+						, "Paths", "Paths", "Ack Ack", "Ack Ack Ack"
+						, "Limit", "Limited Options", "Severely", "Severely Limited"
+						, "Abound", "Abundance", "Pound", "Pound Cake"
+						, "Mirror", "Mirrored", "Craked", "Cracked Mirror"
+						, "FunBags", "Fun Bags", "FunFunBags", "Fun Bags O' Fun"
 
+						// Challenge2: Whut
+						// Level0014.json - 0021.json
+						// You Are Going To     Love These levels
+						// I'm Not Sure  You'll Like Theze Levels
+						, "You", "You", "I'm", "I am"
+						, "Are", "Are", "Not", "Not"
+						, "Going", "Going", "Sure", "Sure"
+						, "To", "To", "You'll", "You Will"
+						, "Love", "Love", "Like", "Like"
+						, "These", "These", "Theze", "Theze"
+						, "Levels", "Levels", "Devils", "Devils"
 
-					// <CHALLENGE II>
-					// Level0014.json - 0021.json
-					// You Are Going To     Love These levels
-					// I'm Not Sure  You'll Like These Levels
-					case 14:
-					{
-						// Level07.json
-						if (evening == 0)
-						{
-							this.weekday[index][evening].caption = "You";
-							this.weekday[index][evening].captionLong = "You";
-						}
-						else
-						{
-							this.weekday[index][evening].caption = "I'm";
-							this.weekday[index][evening].captionLong = "I am";
-						}
-						break;
-					}
-					case 15:
-					{
-						if (evening == 0)
-						{
-							this.weekday[index][evening].caption = "Are";
-							this.weekday[index][evening].captionLong = "Are";
-						}
-						else
-						{
-							this.weekday[index][evening].caption = "Not";
-							this.weekday[index][evening].captionLong = "Not";
-						}
-						break;
-					}
-					case 16:
-					{
-						if (evening == 0)
-						{
-							this.weekday[index][evening].caption = "Going";
-							this.weekday[index][evening].captionLong = "Going";
-						}
-						else
-						{
-							this.weekday[index][evening].caption = "Sure";
-							this.weekday[index][evening].captionLong = "Sure";
-						}
-						break;
-					}
-					case 17:
-					{
-						if (evening == 0)
-						{					
-							this.weekday[index][evening].caption = "To";
-							this.weekday[index][evening].captionLong = "To";
-						}
-						else
-						{
-							this.weekday[index][evening].caption = "You'll";
-							this.weekday[index][evening].captionLong = "You Will";
-						}						
-						break;
-					}
-					case 18:
-					{
-						if (evening == 0)
-						{
-							this.weekday[index][evening].caption = "Love";
-							this.weekday[index][evening].captionLong = "Love";
-						}
-						else
-						{
-							this.weekday[index][evening].caption = "Like";
-							this.weekday[index][evening].captionLong = "Like";
-						}
-						break;
-					}
-					case 19:
-					{
-						if (evening == 0)
-						{
-							this.weekday[index][evening].caption = "These";
-							this.weekday[index][evening].captionLong = "These";
-						}
-						else
-						{
-							this.weekday[index][evening].caption = "Theze";
-							this.weekday[index][evening].captionLong = "Theze";
-						}
-						break;
-					}
-					case 20:
-					{
-						if (evening == 0)
-						{
-							this.weekday[index][evening].caption = "Levels";
-							this.weekday[index][evening].captionLong = "Levels";
-						}
-						else
-						{
-							this.weekday[index][evening].caption = "Devils";
-							this.weekday[index][evening].captionLong = "Devils";
-						}
-						break;
-					}
-					// </CHALLENGE II>
+						// Challenge 3: Extreme
+						// Level0022.json - 0029.json
+						, "Bold", "Bold", "Tasty", "Tasty"
+						, "Hot", "Hot", "Fatty", "Fatty"
+						, "Spicy", "Spicy", "Chewy", "Chewy"
+						, "Stomach", "Stomach", "Stomach", "Stomach"
+						, "Pain", "Pain", "Pain", "Pain"
+						, "Diarrhea", "Diarrhea", "Constipation", "Constipation"
+						, "Relief", "Relief", "Explode", "Explode"
 
-					}
+						, "EE1D", "EE1DL", "EE1E", "EE1EL"
+						, "EE2D", "EE2DL", "EE2E", "EE2EL"
+						, "EE3D", "EE3DL", "EE3E", "EE3EL"
+						, "EE4D", "EE4DL", "EE4E", "EE4EL"
+						, "EE5D", "EE5DL", "EE5E", "EE5EL"
+						, "EE6D", "EE6DL", "EE6E", "EE6EL"
+						, "EE7D", "EE7DL", "EE7E", "EE7EL"
+					];
+				
+					this.weekday[index][evening].caption = holdCaption[(index - 7) * 4 + evening * 2];
+					this.weekday[index][evening].captionLong = holdCaption[(index - 7) * 4 + evening * 2 + 1];
 				}
 
 				this.weekday[index][evening].steps = -1;
@@ -2370,6 +2300,7 @@ function UserData()
 	}
 }
 var mUserData = new UserData();
+
 
 // ------------------------------------------------------------------------------------------------------
 // <START>
@@ -2423,6 +2354,17 @@ var WorldType =
 	, Monolith2: 33
 };
 
+var mWorldLevelColourType =
+{
+	None: 0
+	, Boss: 1
+	, MileStone: 2
+	, Bonus: 3   // also used by Grow
+	, OneHundred: 4
+	, Bubbling: 5
+	, Blinking: 6   // new / unused - stinks on small levels
+}
+var mWorldLevelColour = mWorldLevelColourType.None;
 
 function LevelName()
 {
@@ -2462,21 +2404,6 @@ function LevelsGet(pURL)
 		}
 		// Everything should be ok, process the result here
 		mLevels = JSON.parse(jsmin(result));   // jsmin removes the comments in the json file and returns the string json
-
-if (false)
-{
-
-mLevels =
-[
-[1,1,0,0,2,2,0,5,5,0,2   ,10,"3333542225503453540503401"   ,12,"3333542252504353540503401"   , [18,20]]
-, [1,8,0,0,2,18,0,4,6,0,3   ,9,"012233544524450405340340"   ,15,"033534524235340501520420"   , [14,20]]
-
-// Extremely Easy
-, [1,3,1,0,2,3,0,4,3,0,0   ,3,"500033350122"   ,6,"500035350341"   , [3]]
-
-];
-
-}
 
 /*
 // 2024-10-15 This Test Worked
@@ -4177,16 +4104,13 @@ function TalkTypeFailSet(pStateType2, pFlash = true)
 				tile = mPlayFieldDivs[index];
 				if (mUrineState > 0)
 				{
-					tile.colorRFinal = 255;
-					tile.colorGFinal = 255;
-					tile.colorBFinal = 192;
+					TileSetColor(tile, 255, 255, 192, 1);
 				}
 				else
 				{
-					tile.colorRFinal = 255;
-					tile.colorGFinal = 255;
-					tile.colorBFinal = 255;
+					TileSetColor(tile, 255, 255, 255, 1);
 				}
+				CanvasOffscreenTileRefresh();
 
 				if (pFlash)
 				{
@@ -4212,7 +4136,8 @@ function TalkTypeFailSet(pStateType2, pFlash = true)
 			{
 				tile = mPlayFieldDivs[index];
 				TileSetColor(tile, 192, 192, 192, 1);
-
+				CanvasOffscreenTileRefresh();
+				
 				if (pFlash)
 				{
 					TileSetColorTemp(tile, 1000 + parseInt(Math.random() * 4000), 255, 0, 0);
@@ -5083,7 +5008,7 @@ function GetSongIndex()
 
 function MusicSelect()
 {
-	if ( (mMusic.talkIndex == -1) && (mState != -1) )
+	if ( (mMusic.talkIndex == -1) && (mState != 1) )
 	{
 		// Something must always be playing ... decide what!
 		if (mWorldState == 0)
@@ -5361,7 +5286,7 @@ this.Update = function()
 			if (Math.abs(this.spotHistoryIndex - this.spots[index].spotHistoryIndex) < 0.5)
 			{
 				this.spots[index].spotHistoryIndex = this.spotHistoryIndex;
-				this.spots[index].visible = 0;
+				this.visible = 0;
 			}
 			else
 			{
@@ -5378,7 +5303,6 @@ this.Update = function()
 	}
 }
 
-
 this.DrawCanvas = function()
 {		
 	mCanvasMainContext.globalAlpha = 0.075;
@@ -5386,8 +5310,8 @@ this.DrawCanvas = function()
 	{
 		if (this.spots[index].visible > 0)
 		{
-			mCanvasMainContext.drawImage(mCanvasOffscreenSpot
-				, 0, 0, mCanvasOffscreenSpot.width, mCanvasOffscreenSpot.height
+			mCanvasMainContext.drawImage(mCanvasOffscreenPlayer
+				, 0, 0, mTileSize, mTileSize
 				, Math.floor(this.spots[index].transform.jimLeft - this.spots[index].transform.jimWidth * 0.5)
 				, Math.floor(this.spots[index].transform.jimTop - this.spots[index].transform.jimHeight * 0.5)
 				, Math.floor(this.spots[index].transform.jimWidth)
@@ -5395,7 +5319,6 @@ this.DrawCanvas = function()
 			);
 		}
 	}
-	
 	mCanvasMainContext.globalAlpha = 1;	
 }
 
@@ -5454,43 +5377,49 @@ this.Refresh = function()
 
 this.DrawCanvas = function()
 {
-	for (var index = 0; index < this.players.length; index++)
-	{	
-		var player = this.players[index];
-		if (player.state != 0)
-		{
-			let jimLeft = Math.floor(player.transform.jimLeft), jimTop = Math.floor(player.transform.jimTop);
+	this.DrawCanvasType = function(pType)
+	{
+		for (var index = 0; index < this.players.length; index++)
+		{	
+			var player = this.players[index];
+			if ((player.type == pType) && (player.state != 0))
+			{
+				let jimLeft = Math.floor(player.transform.jimLeft), jimTop = Math.floor(player.transform.jimTop);
 
-			// Move the entire Canvas so it's centered at the Player
-			mCanvasMainContext.translate(jimLeft, jimTop);
+				// Move the entire Canvas so it's centered at the Player
+				mCanvasMainContext.translate(jimLeft, jimTop);
 
-			// Rotate the entire canvas
-			// Note: Take into account BOSS "Do level in Reverse", where the player faces opposite direction
-			let rotateRadian = (mLevelStageCount == 1) ? ((player.transform.jimRotate + 180) % 360) * (Math.PI / 180.0) : player.transform.jimRotate * (Math.PI / 180.0);		
-			mCanvasMainContext.rotate(rotateRadian);
-			
-			// Put the rotated Canvas back (I don't fully understand this, but it works)
-			mCanvasMainContext.translate(-jimLeft, -jimTop);
+				// Rotate the entire canvas
+				// Note: Take into account BOSS "Do level in Reverse", where the player faces opposite direction
+				let rotateRadian = (mLevelStageCount == 1) ? ((player.transform.jimRotate + 180) % 360) * (Math.PI / 180.0) : player.transform.jimRotate * (Math.PI / 180.0);		
+				mCanvasMainContext.rotate(rotateRadian);
+				
+				// Put the rotated Canvas back (I don't fully understand this, but it works)
+				mCanvasMainContext.translate(-jimLeft, -jimTop);
 
-			// mCanvasOffscreenPlayer is a cache of face images I made scaled to this level
-			// sometimes the image won't be scaled, giving a dash of performance
-			// drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)
-			
-			// console.log("fiodsjoids " + player.faceIndex);
-			mCanvasMainContext.drawImage(mCanvasOffscreenPlayer
-				, 0, player.faceIndex * mTileSize 
-				, mTileSize, mTileSize 
+				// mCanvasOffscreenPlayer is a cache of face images I made scaled to this level
+				// sometimes the image won't be scaled, giving a dash of performance
+				// drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)
+				
+				// console.log("fiodsjoids " + player.faceIndex);
+				mCanvasMainContext.drawImage(mCanvasOffscreenPlayer
+					, 0, mTileSize + player.faceIndex * mTileSize
+					, mTileSize, mTileSize 
 
-				, Math.floor(jimLeft - player.transform.jimWidth * 0.5)
-				, Math.floor(jimTop - player.transform.jimHeight * 0.5)
-				, Math.floor(player.transform.jimWidth)
-				, Math.floor(player.transform.jimHeight)
-			);
+					, Math.floor(jimLeft - player.transform.jimWidth * 0.5)
+					, Math.floor(jimTop - player.transform.jimHeight * 0.5)
+					, Math.floor(player.transform.jimWidth)
+					, Math.floor(player.transform.jimHeight)
+				);
 
-			// Remove the rotation.
-			mCanvasMainContext.setTransform(1, 0, 0, 1, 0, 0);
+				// Remove the rotation.
+				mCanvasMainContext.setTransform(1, 0, 0, 1, 0, 0);
+			}
 		}
 	}
+	
+	this.DrawCanvasType(0);
+	this.DrawCanvasType(1);   // Draw Pink OVER regular
 }
 
 this.Load = function()
@@ -5723,6 +5652,7 @@ this.Update = function()
 			// Pink leaves pink trails
 			if (player.type > 0)
 			{
+				// TileSetColor(mPlayFieldDivs[pXYIndex], 192, 192, 192, 1);
 				TileSetColor(mPlayFieldDivs[pXYIndex], 255, 100, 255, 2);
 				TileSetColorTemp(mPlayFieldDivs[pXYIndex], pTempTime, 255, 100, 255);
 			}
@@ -7413,6 +7343,12 @@ function TilesWhite()
 			TileSetColor(tile, 255, 255, 255, 1);			
 		}
 	}	
+
+	if (mState == 1)
+	{
+		mCanvasMainContext.strokeStyle = "rgba(0, 0, 0, 1)";
+		CanvasOffscreenTileRefresh();
+	}
 }
 
 function TileSetColorTemp(pTile, pMilliseconds, pR, pG, pB)
@@ -7710,6 +7646,9 @@ function TilesUpdate()
 	// <DRAW LIGHTS OUT>
 	if (mTalkStates[TalkType.light] == 0)
 	{
+		let holdStrokeStyle = mCanvasMainContext.strokeStyle;
+		let holdFillStyle = mCanvasMainContext.fillStyle;
+
 		mCanvasMainContext.strokeStyle = "";
 		mCanvasMainContext.fillStyle = "rgb(" + 50 + "," + 50 + "," + parseInt(50.0 * (96.0 / 64.0)) + ")";
 
@@ -7734,22 +7673,23 @@ function TilesUpdate()
 				mCanvasMainContext.fill();
 			}
 		}
+
+		mCanvasMainContext.strokeStyle = holdStrokeStyle;
+		mCanvasMainContext.fillStyle = holdFillStyle;
 	}
 	// </DRAW LIGHTS OUT>
 
 	else
 	{
-		let holdStrokeStyle = mCanvasMainContext.strokeStyle;
 
 		ButtonDraw();
-		
-		if (mWorldWidth > 500)
-		{
-			// <DRAW SHADOW>
-			// drains mobile, effect not noticeable on those tiny screens
-			mCanvasMainContext.strokeStyle = "#FFFFFF60"; // rgb(255, 255, 255, 128)";
-			// mCanvasMainContext.fillStyle = "rgb(32, 32, " + parseInt(32.0 * (96.0 / 64.0)) + ")";		
 
+		// <DRAW SHADOW>		
+		if ((mWorldWidth > 500) || (mWorldLevelColour == mWorldLevelColourType.Blinking)) 
+		{
+			// drains mobile, effect not noticeable on those tiny screens
+			let holdStrokeStyle = mCanvasMainContext.strokeStyle;
+			mCanvasMainContext.strokeStyle = "#FFFFFF60";
 			for (var xyIndex = 0; xyIndex < mPlayFieldDivs.length; xyIndex++)
 			{
 				tile = mPlayFieldDivs[xyIndex];			
@@ -7771,14 +7711,12 @@ function TilesUpdate()
 					mCanvasMainContext.lineWidth = holdLineWidth;
 					mCanvasMainContext.stroke();
 					// mCanvasMainContext.fill();
-				}
+				}			
 			}
-			// </DRAW SHADOW>
+			mCanvasMainContext.strokeStyle = holdStrokeStyle;			
 		}
-
-		mCanvasMainContext.strokeStyle = holdStrokeStyle;
-		// mCanvasMainContext.strokeStyle = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
-				
+		// </DRAW SHADOW>
+		
 		// <DRAW>
 		let holdInt = -1;
 		let holdColorRFinal = -1;
@@ -7850,66 +7788,70 @@ function TilesUpdate()
 					}
 				}
 
-				// https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Optimizing_canvas
-				// https://web.dev/articles/canvas-performance
-				mCanvasMainContext.beginPath();
-
-				// ellipse applies to BOTH stroke and fill, doing one for each requires seperate beginPath likely defeating the purpose
-				// ellipse strokes / fills from center. subpixels were happending (border overlap aliasing) regardless of parseInt, so removed
-				// ellipse should be far slower than .rect or drawImage from an offscreen, but testing showed it made little difference
-				mCanvasMainContext.ellipse(
-					tileT.jimLeft
-					, tileT.jimTop
-					, tileT.jimWidth * 0.5
-					, tileT.jimHeight * 0.5
-					, 0, 0, 2 * Math.PI
-				);
-				
-				/*
-				mCanvasMainContext.rect(
-					Math.floor(tileT.jimLeft - tileT.jimWidth * 0.5)
-					, Math.floor(tileT.jimTop - tileT.jimHeight * 0.5)
-					, Math.floor(tileT.jimWidth)
-					, Math.floor(tileT.jimHeight)
-				);
-				*/
-
-				let holdLineWidth = tileT.jimWidth * 0.1;
-				if (holdLineWidth < 1) { holdLineWidth = 1; }
-				mCanvasMainContext.lineWidth = holdLineWidth;
-				mCanvasMainContext.stroke();
-
-				// Debug
-				// if (tile.extra > 0) { tile.colorR = 255; tile.colorG = 0; tile.colorB = 0; }
-				// if (tile.finalTile > 0) { tile.colorR = 0; tile.colorG = 255; tile.colorB = 0; }
-				
-				mCanvasMainContext.fillStyle = "rgb(" + parseInt(tile.colorR) + "," + parseInt(tile.colorG) + "," + parseInt(tile.colorB) + ")";
-				mCanvasMainContext.fill();   // overlaps half the stroke. fixes for that overdraw required more computation and beginPath removal
-
-				/*
-				// ABANDONED OPTIMIZATION 2024-09-04 Might Revisit. Did NOT appear to make much difference but did NOT test thoroughly.
-				// Note: SolveUpdate impacts performance so much, drawing optimization makes little difference.
-				mCanvasMainContext.beginPath();
-				let holdLineWidth = tileT.jimWidth * 0.05;
-				if (holdLineWidth < 1) { holdLineWidth = 1; }
-				mCanvasMainContext.lineWidth = holdLineWidth;
-
-				holdInt = parseInt(tileT.jimWidth * 0.5);
-				mCanvasMainContext.ellipse(
-					parseInt(tileT.jimLeft)
-					, parseInt(tileT.jimTop)
-					, holdInt
-					, holdInt
-					, 0, 0, 2 * Math.PI
-				);
-				mCanvasMainContext.stroke();
-
-				mCanvasMainContext.beginPath();
-				mCanvasMainContext.fillStyle = "rgb(" + parseInt(tile.colorR) + "," + parseInt(tile.colorG) + "," + parseInt(tile.colorB) + ")";
-
-				holdInt = parseInt(tileT.jimWidth * 0.5 - holdLineWidth * 0.9);
-				if (holdInt > 0)
+				if (
+					(Math.floor(tileT.jimWidth) == mTileSize2)
+					&& ((tile.colorR == tile.colorRFinal) && (tile.colorG == tile.colorGFinal) && (tile.colorB == tile.colorBFinal))
+					&& (mDebugToggle == 0)
+				)
 				{
+					// Replace Ellipse with White circle + Black outline
+					mCanvasMainContext.drawImage(
+						mCanvasOffscreenTile
+						, 0, 0
+						, mCanvasOffscreenTile.width,  mCanvasOffscreenTile.height
+						, Math.floor(tileT.jimLeft - mCanvasOffscreenTile.width * 0.5), Math.floor(tileT.jimTop - mCanvasOffscreenTile.height * 0.5)
+						, mCanvasOffscreenTile.width, mCanvasOffscreenTile.height
+					);
+
+					// console.log("mTileSize2 " + mTileSize2);
+				}
+				else if (mWorldLevelColour != mWorldLevelColourType.Blinking)
+				{
+					// https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Optimizing_canvas
+					// https://web.dev/articles/canvas-performance
+					mCanvasMainContext.beginPath();
+
+					// ellipse applies to BOTH stroke and fill, doing one for each requires seperate beginPath likely defeating the purpose
+					// ellipse strokes / fills from center. subpixels were happending (border overlap aliasing) regardless of parseInt, so removed
+					// ellipse should be far slower than .rect or drawImage from an offscreen, but testing showed it made little difference
+					mCanvasMainContext.ellipse(
+						tileT.jimLeft
+						, tileT.jimTop
+						, tileT.jimWidth * 0.5
+						, tileT.jimHeight * 0.5
+						, 0, 0, 2 * Math.PI
+					);
+				
+					/*
+					mCanvasMainContext.rect(
+						Math.floor(tileT.jimLeft - tileT.jimWidth * 0.5)
+						, Math.floor(tileT.jimTop - tileT.jimHeight * 0.5)
+						, Math.floor(tileT.jimWidth)
+						, Math.floor(tileT.jimHeight)
+					);
+					*/
+
+					let holdLineWidth = tileT.jimWidth * 0.1;
+					if (holdLineWidth < 1) { holdLineWidth = 1; }
+					mCanvasMainContext.lineWidth = holdLineWidth;
+					mCanvasMainContext.stroke();
+
+					// Debug
+					// if (tile.extra > 0) { tile.colorR = 255; tile.colorG = 0; tile.colorB = 0; }
+					// if (tile.finalTile > 0) { tile.colorR = 0; tile.colorG = 255; tile.colorB = 0; }
+					
+					mCanvasMainContext.fillStyle = "rgb(" + parseInt(tile.colorR) + "," + parseInt(tile.colorG) + "," + parseInt(tile.colorB) + ")";
+					mCanvasMainContext.fill();   // overlaps half the stroke. fixes for that overdraw required more computation and beginPath removal
+
+					/*
+					// ABANDONED OPTIMIZATION 2024-09-04 Might Revisit. Did NOT appear to make much difference but did NOT test thoroughly.
+					// Note: SolveUpdate impacts performance so much, drawing optimization makes little difference.
+					mCanvasMainContext.beginPath();
+					let holdLineWidth = tileT.jimWidth * 0.05;
+					if (holdLineWidth < 1) { holdLineWidth = 1; }
+					mCanvasMainContext.lineWidth = holdLineWidth;
+
+					holdInt = parseInt(tileT.jimWidth * 0.5);
 					mCanvasMainContext.ellipse(
 						parseInt(tileT.jimLeft)
 						, parseInt(tileT.jimTop)
@@ -7917,9 +7859,25 @@ function TilesUpdate()
 						, holdInt
 						, 0, 0, 2 * Math.PI
 					);
-					mCanvasMainContext.fill();  // overlaps half the stroke (fixing that would require another .ellipse call)
+					mCanvasMainContext.stroke();
+
+					mCanvasMainContext.beginPath();
+					mCanvasMainContext.fillStyle = "rgb(" + parseInt(tile.colorR) + "," + parseInt(tile.colorG) + "," + parseInt(tile.colorB) + ")";
+
+					holdInt = parseInt(tileT.jimWidth * 0.5 - holdLineWidth * 0.9);
+					if (holdInt > 0)
+					{
+						mCanvasMainContext.ellipse(
+							parseInt(tileT.jimLeft)
+							, parseInt(tileT.jimTop)
+							, holdInt
+							, holdInt
+							, 0, 0, 2 * Math.PI
+						);
+						mCanvasMainContext.fill();  // overlaps half the stroke (fixing that would require another .ellipse call)
+					}
+					*/
 				}
-				*/
 			}
 		}
 		
@@ -7980,54 +7938,48 @@ function TilesUpdate()
 	mPlayer.DrawCanvas();
 	// </CANVAS REPLACEMENT>
 
-	mCanvasMainContext.strokeStyle = "rgb(32, 32, " + parseInt(32.0 * (96.0 / 64.0)) + ")";		
-
+	if (mState != 1)
+	{
 	// <BOSS>
 	if (
-		(mLevelType == LevelType.Boss)
-		|| ( (mWorldMode > 0) && (mTileTotalRemember > 180) && (mWeekdayLevelsRemaining != 1) && ((mWeekdayLevelsRemaining % 2) == 1) )
+		(mWorldLevelColour == mWorldLevelColourType.Boss)
+		|| (mWorldLevelColour == mWorldLevelColourType.Blinking)
 	)
-	{
-		if (mState != 1)
+	{		
+		for (var index = 0; index < mMilestoneRollers.length; index++)
 		{
-			mSolveUpdateColorFlag = false;
-			mCanvasMainContext.strokeStyle = "rgb(128, 0, 0)";
-		
-			for (var index = 0; index < mMilestoneRollers.length; index++)
+			if (mMilestoneRollers[index].xyIndex == -1)
 			{
-				if (mMilestoneRollers[index].xyIndex == -1)
+				mMilestoneRollers[index].xyIndex = (mTileYCount - 1) * mTileXCount + parseInt(Math.random() * mTileXCount);
+				mMilestoneRollers[index].speed = 0.1 + Math.random() * 0.1;
+				if (mLevelStageCount == 1) { mMilestoneRollers[index].speed *= 1.5; } else if (mLevelStageCount == 2) { mMilestoneRollers[index].speed *= 2.5; } 
+				mMilestoneRollers[index].speedCount = 0;
+				mMilestoneRollers[index].colorR = 255;
+				mMilestoneRollers[index].colorG = 128;
+				mMilestoneRollers[index].colorB = 0;
+			}
+
+			mMilestoneRollers[index].speedCount += mMilestoneRollers[index].speed;
+			if (mMilestoneRollers[index].speedCount > 1)
+			{
+				mMilestoneRollers[index].speedCount -= 1;
+				if (mMilestoneRollers[index].speedCount > 1 * 0.2) { mMilestoneRollers[index].speedCount = 0; }
+				
+				mMilestoneRollers[index].xyIndex -= mTileXCount;
+				if (mMilestoneRollers[index].xyIndex < 0)
 				{
 					mMilestoneRollers[index].xyIndex = (mTileYCount - 1) * mTileXCount + parseInt(Math.random() * mTileXCount);
 					mMilestoneRollers[index].speed = 0.1 + Math.random() * 0.1;
 					if (mLevelStageCount == 1) { mMilestoneRollers[index].speed *= 1.5; } else if (mLevelStageCount == 2) { mMilestoneRollers[index].speed *= 2.5; } 
-					mMilestoneRollers[index].speedCount = 0;
-					mMilestoneRollers[index].colorR = 255;
-					mMilestoneRollers[index].colorG = 128;
-					mMilestoneRollers[index].colorB = 0;
 				}
 
-				mMilestoneRollers[index].speedCount += mMilestoneRollers[index].speed;
-				if (mMilestoneRollers[index].speedCount > 1)
+				if(
+					(mPlayField[mMilestoneRollers[index].xyIndex] > 0)
+					&& (mMilestoneRollers[index].xyIndex != mPlayer.xyIndex)
+					&& (mPlayFieldDivs[mMilestoneRollers[index].xyIndex].finishTileState == 0)
+				)
 				{
-					mMilestoneRollers[index].speedCount -= 1;
-					if (mMilestoneRollers[index].speedCount > 1 * 0.2) { mMilestoneRollers[index].speedCount = 0; }
-					
-					mMilestoneRollers[index].xyIndex -= mTileXCount;
-					if (mMilestoneRollers[index].xyIndex < 0)
-					{
-						mMilestoneRollers[index].xyIndex = (mTileYCount - 1) * mTileXCount + parseInt(Math.random() * mTileXCount);
-						mMilestoneRollers[index].speed = 0.1 + Math.random() * 0.1;
-						if (mLevelStageCount == 1) { mMilestoneRollers[index].speed *= 1.5; } else if (mLevelStageCount == 2) { mMilestoneRollers[index].speed *= 2.5; } 
-					}
-
-					if(
-						(mPlayField[mMilestoneRollers[index].xyIndex] > 0)
-						&& (mMilestoneRollers[index].xyIndex != mPlayer.xyIndex)
-						&& (mPlayFieldDivs[mMilestoneRollers[index].xyIndex].finishTileState == 0)
-					)
-					{
-						TileSetColorTemp(mPlayFieldDivs[mMilestoneRollers[index].xyIndex], 400, mMilestoneRollers[index].colorR, mMilestoneRollers[index].colorG, mMilestoneRollers[index].colorB);
-					}
+					TileSetColorTemp(mPlayFieldDivs[mMilestoneRollers[index].xyIndex], 400, mMilestoneRollers[index].colorR, mMilestoneRollers[index].colorG, mMilestoneRollers[index].colorB);
 				}
 			}
 		}
@@ -8035,8 +7987,7 @@ function TilesUpdate()
 	// </BOSS>
 	
 	else if (
-		(mState != 1)
-		&& (mUseTheForceState == 0)
+		(mUseTheForceState == 0)
 		&& (mUrineState <= 0)
 		&& (mWorldState != 2)
 		&& (mScoreUpdated == 0)
@@ -8046,10 +7997,8 @@ function TilesUpdate()
 		var hold = mTileTotalRemember * 0.5; if (hold < 10) { hold = 10; }
 
 		// <ONEHUNDRED>
-		if (mLevelType == LevelType.OneHundred)
-		{
-			mCanvasMainContext.strokeStyle = "rgb(128, 255, 128)";
-		
+		if (mWorldLevelColour == mWorldLevelColourType.OneHundred)
+		{		
 			for (var index = 0; index < mMilestoneRollers.length; index++)
 			{
 				if (mMilestoneRollers[index].xyIndex == -1)
@@ -8164,10 +8113,8 @@ function TilesUpdate()
 
 		// <WEEKDAY LAST LEVEL BUBBLING>
 		// original, random and unpredictable
-		if ( (mWorldMode > 0) && (mWeekdayLevelsRemaining == 1) && (mGrowCount == 0) )
-		{
-			mSolveUpdateColorFlag = false;
-			
+		else if (mWorldLevelColour == mWorldLevelColourType.Bubbling) 
+		{			
 			let count = 20;   // like keeping lots of white ones
 			let xyIndex = -1;
 			let tile = null;
@@ -8312,14 +8259,8 @@ function TilesUpdate()
 		*/
 		
 		// <MILESTONE>
-		else if ( 
-			(mLevelType == LevelType.MileStone)
-			|| ( (mWorldMode > 0) && (mTileTotalRemember > 180) && (mWeekdayLevelsRemaining != 1) && ((mWeekdayLevelsRemaining % 2) == 0) )
-		)
-		{
-			mSolveUpdateColorFlag = false;
-			mCanvasMainContext.strokeStyle = "rgb(255, 255, 255)";
-		
+		else if (mWorldLevelColour == mWorldLevelColourType.MileStone)
+		{		
 			for (var index = 0; index < mMilestoneRollers.length; index++)
 			{
 				if (mMilestoneRollers[index].xyIndex == -1)
@@ -8362,10 +8303,8 @@ function TilesUpdate()
 		// </MILESTONE>
 		
 		// <BONUS>
-		else if ( (mLevelType == LevelType.Bonus) || (mGrowCount > 0) )
-		{
-			mCanvasMainContext.strokeStyle = "rgb(255, 255, 0)";
-		
+		else if (mWorldLevelColour == mWorldLevelColourType.Bonus)
+		{		
 			var holdTotal = parseInt(mTileXYCount * 0.075); if (holdTotal > mMilestoneRollers.length) { holdTotal = mMilestoneRollers.length; }
 			for (var index = 0; index < holdTotal; index++)
 			{
@@ -8447,6 +8386,7 @@ function TilesUpdate()
 			}
 		}
 		// </BONUS>
+	}
 	}
 }
 
@@ -9006,7 +8946,7 @@ function SolveUpdateStart()
 }
 
 function SolveUpdate(pMilliseconds)
-{
+{	
 	// Determine whether the playfield (given where the player is at) can be solved
 	// fake "reentrant", fake "mutithreading" - meaning it doesn't do the entire thing but just a piece
 	// Returns 3 things: 0 - still working (mSolutions exists)  1 - fail (could be 100% sure or just unable to finnish)   2 - there's ONE path (might be more)
@@ -9014,6 +8954,8 @@ function SolveUpdate(pMilliseconds)
 	let newState = 0;	
 	let milliseconds = Date.now();
 
+	try
+	{
 	// <INITIALIZE HEAVY CHECK>
 	// copy first playfield as the root of the recursive array
 	if (mSolveUpdateCount == 1)
@@ -9199,7 +9141,8 @@ function SolveUpdate(pMilliseconds)
 	// </HEAVY CHECK>
 
 	mSolveUpdateCount++;
-	
+	}
+	catch (err) { alert("SolveUpdate Error:\n" + err); }
 	return newState;
 }
 
@@ -9413,6 +9356,49 @@ function WorldChange(pWorldMode, pWorldDayOfWeek, pWorldEvening)
 	}
 }
 
+function CanvasOffscreenTileRefresh()
+{
+	// FIX SPOTS!!!
+	
+	// if tile fillcolor or strokecolor changes, or mTileSize2 changes this must be rebuilt
+	// https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Optimizing_canvas
+	// https://web.dev/articles/canvas-performance
+
+	let holdLineWidth = mTileSize2 * 0.1;
+	if (holdLineWidth < 1) { holdLineWidth = 1; }
+
+	mCanvasOffscreenTile.width = mTileSize2 + holdLineWidth * 2;
+	mCanvasOffscreenTile.height = mTileSize2 + holdLineWidth * 2;
+
+	mCanvasOffscreenTileContext.beginPath();
+
+	mCanvasOffscreenTileContext.clearRect(0, 0, mCanvasOffscreenTile.width, mCanvasOffscreenTile.height);
+
+	mCanvasOffscreenTileContext.ellipse(
+		mTileSize2 * 0.5 + holdLineWidth
+		, mTileSize2 * 0.5 + holdLineWidth
+		, mTileSize2 * 0.5
+		, mTileSize2 * 0.5
+		, 0, 0, 2 * Math.PI
+	);
+
+	mCanvasOffscreenTileContext.lineWidth = holdLineWidth;
+	mCanvasOffscreenTileContext.strokeStyle = mCanvasMainContext.strokeStyle;
+	mCanvasOffscreenTileContext.stroke();
+
+	let holdFillStyle = "rgba(255, 255, 255, 1)";
+	if (mUrineState > 0)
+	{
+		holdFillStyle = "rgba(255, 255, 192, 1)";
+	}
+	else if (mTalkStates[TalkType.fail] == 0)
+	{
+		holdFillStyle = "rgba(192, 192, 192, 1)";
+	}
+	mCanvasOffscreenTileContext.fillStyle = holdFillStyle;
+	mCanvasOffscreenTileContext.fill();   // overlaps half the stroke. fixes for that overdraw required more computation and BeginPath removal
+}
+
 function WorldPlayFieldResize()
 {
 	// Called by WorldResize AND when:
@@ -9489,32 +9475,35 @@ function WorldPlayFieldResize()
 		let img = null;		
 
 		mCanvasOffscreenPlayer.width = mTileSize;
-		mCanvasOffscreenPlayer.height = mTileSize * 12;		
-		for (let index = 0; index < 6; index++)
+		mCanvasOffscreenPlayer.height = mTileSize * 13;
+
+		// Shadow (no blink)
+		img = document.getElementById("face00"); 
+		mCanvasOffscreenPlayerContext.drawImage(img
+			, 0, 0, img.width, img.height
+			, 0, 0, mTileSize, mTileSize
+		);
+		
+		for (let index = 1; index <= 6; index++)
 		{
+			// Normal
 			// drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)
 			img = document.getElementById("face" + index + "0"); 
 			mCanvasOffscreenPlayerContext.drawImage(img
 				, 0, 0, img.width, img.height
-				, 0, mTileSize * index * 2, mTileSize, mTileSize
+				, 0, mTileSize + (index - 1) * (mTileSize * 2), mTileSize, mTileSize
 			);
 
+			// Blink
 			img = document.getElementById("face" + index + "1"); 
 			mCanvasOffscreenPlayerContext.drawImage(img
 				, 0, 0, img.width, img.height
-				, 0, mTileSize * (index * 2 + 1), mTileSize, mTileSize
+				, 0, mTileSize + (index - 1) *  (mTileSize * 2) + mTileSize, mTileSize, mTileSize
 			);			
-		}
-		
-		let tileSize = Math.floor(mTileSize * 0.8);
-		mCanvasOffscreenSpot.width = tileSize;
-		mCanvasOffscreenSpot.height = tileSize;
-		img = document.getElementById("faceshadow"); 
-		mCanvasOffscreenSpotContext.drawImage(img
-			, 0, 0, img.width, img.height
-			, 0, 0, tileSize, tileSize 
-		);
+		}		
 		// </OFFSCREEN>		
+
+		CanvasOffscreenTileRefresh();
 	}
 }
 
@@ -9567,9 +9556,12 @@ function WorldResizeUpdate()
 		mWorldDiv.style.width = mWorldWidth + "px";
 		mWorldDiv.style.height = mWorldHeight + "px";
 
-		mCanvasMain.width = mWorldWidth;   // do NOT use Style.Width, or "px"
-		mCanvasMain.height = mWorldHeight;
 		CurtainRefresh(0);
+
+		let holdStrokeStyle = mCanvasMainContext.strokeStyle;
+		mCanvasMain.width = mWorldWidth;   // do NOT use Style.Width, or "px". destroys strokeStyle
+		mCanvasMain.height = mWorldHeight;
+		mCanvasMainContext.strokeStyle = holdStrokeStyle;
 
 		WorldPlayFieldResize();
 
@@ -9830,7 +9822,7 @@ function WorldResetInitialize(pFull)
 
 		mTalkCurrentTimeRemember = 0;	
 		mGrowCount = 0;
-		mGrowDie = false;		
+		mGrowDie = false;
 		mSolveUpdateColorFlag = true;
 		mWorldResetCheckFailsafe = 0;	
 		mUseTheForceState = 0;
@@ -10035,7 +10027,7 @@ function WorldReset(pFull = true)
 	// if levels have not arrived yet, wait.
 	if (mLevels == null) { window.setTimeout(WorldReset, 500); return; }
 
-	if (mTalkIndex == 30)
+	if (mTalkIndex => 30)
 	{
 		MenuFrankEnd();
 		return;
@@ -10108,7 +10100,6 @@ function WorldReset(pFull = true)
 		}
 		else if (mLevelType == LevelType.OneHundred)
 		{
-			mSolveUpdateColorFlag = false;
 			mWorldExtreme = true;   // RailsBonus only available in Extreme
 			if (Math.random() < 0.5)
 			{
@@ -10122,7 +10113,6 @@ function WorldReset(pFull = true)
 		else if (mLevelType == LevelType.MileStone)
 		{
 			// MILESTONE
-			mSolveUpdateColorFlag = false;
 			mWorldExtreme = true;
 			mWorldTypeMilestoneCounter = (mWorldTypeMilestoneCounter + 1) % 4;
 			switch (mWorldTypeMilestoneCounter)
@@ -10147,14 +10137,12 @@ function WorldReset(pFull = true)
 		else if (mLevelType == LevelType.Boss)
 		{
 			// BOSS - hardest, take time to render
-			mSolveUpdateColorFlag = false;
 			mWorldExtreme = true;
 			mWorldType = WorldType.Stripes;
 		}
 		else if (mLevelType == LevelType.Bonus)
 		{
 			// BONUS
-			mSolveUpdateColorFlag = false;
 			mWorldTypeBonusCounter = (mWorldTypeBonusCounter + 1) % 4;
 			switch (mWorldTypeBonusCounter)
 			{
@@ -11128,6 +11116,73 @@ function FinishTileRemoveAll()
 	}	
 }
 
+function WorldStrokeStyleSet()
+{
+	// <LEVEL COLOUR>
+	mSolveUpdateColorFlag = true;
+	mCanvasMainContext.strokeStyle = "rgb(32, 32, " + parseInt(32.0 * (96.0 / 64.0)) + ")";		
+	mWorldLevelColour = mWorldLevelColourType.None;
+	
+	// <WEEKDAYS>
+	if (mWorldMode > 0)
+	{
+		if (mWeekdayLevelsRemaining == 1)
+		{
+			mWorldLevelColour = mWorldLevelColourType.Bubbling;
+			mSolveUpdateColorFlag = false;		
+		}
+		else if (mTileTotalRemember > 180)   // Bonus colouring only looks good on levels with a lot of tiles
+		{
+			if ((mWeekdayLevelsRemaining % 2) == 0)
+			{
+				mWorldLevelColour = mWorldLevelColourType.MileStone;
+				mCanvasMainContext.strokeStyle = "rgb(255, 255, 255)";
+				mSolveUpdateColorFlag = false;		
+			}
+			else
+			{
+				mWorldLevelColour = mWorldLevelColourType.Boss;
+				mCanvasMainContext.strokeStyle = "rgb(128, 0, 0)";
+				mSolveUpdateColorFlag = false;		
+			}
+		}	
+	}
+	// </WEEKDAYS>
+	
+	// <FRANK'S STORY>
+	else
+	{
+		if (mLevelType == LevelType.MileStone)
+		{
+			mWorldLevelColour = mWorldLevelColourType.MileStone;
+			mCanvasMainContext.strokeStyle = "rgb(255, 255, 255)";
+			mSolveUpdateColorFlag = false;
+		}
+		else if (mLevelType == LevelType.Boss)
+		{
+			mWorldLevelColour = mWorldLevelColourType.Boss;
+			mCanvasMainContext.strokeStyle = "rgb(128, 0, 0)";
+			mSolveUpdateColorFlag = false;
+		}
+		else if (mLevelType == LevelType.Bonus)
+		{
+			mWorldLevelColour = mWorldLevelColourType.Bonus;
+			mCanvasMainContext.strokeStyle = "rgb(255, 255, 0)";
+			mSolveUpdateColorFlag = false;
+		}
+		else if (mLevelType == LevelType.OneHundred)
+		{
+			mWorldLevelColour = mWorldLevelColourType.OneHundred;
+			mCanvasMainContext.strokeStyle = "rgb(128, 255, 128)";
+			mSolveUpdateColorFlag = false;
+		}
+	}
+	// </FRANK'S STORY>
+
+	CanvasOffscreenTileRefresh();
+	// </LEVEL COLOUR>
+}
+
 function WorldResetFinish()
 {
 	/*
@@ -11449,6 +11504,8 @@ function WorldResetFinish()
 			mLevels[mLevelIndex][3] = 1;   // don't use this level again. 2024-used to permanently save this
 		}
 	}
+
+	WorldStrokeStyleSet();
 	
 	// CopyLevelToClipboard();   // on mobile ONLY works if we're in OnTouchEnd event, otherwise ignored (only shows 1st level, not others)
 	let hold = (mLevelIndex == 0) ? "Start" : "";	
@@ -12470,6 +12527,7 @@ function WorldLevelReset()
 	mWorldFreezeTime = Date.now() + 750;
 	mSpots.Finish(mPlayFieldDivs[mPlayer.xyIndex].newLeft, mPlayFieldDivs[mPlayer.xyIndex].newTop);	
 
+	WorldStrokeStyleSet();
 	TilesWhite();
 	StatTopLeftRefresh();
 }
@@ -12479,7 +12537,7 @@ function WorldUpdateFailStuck(pFail)
 	// Fail and Stuck can have the EXACT same result
 	// Otherwise, pFail:True lets player wander UNTIL they get stuck
 	// Should Urine or UseTheForce really call this? Love the idea of relocating ALL WordShow/Text here
-	console.assert(mState != -1, "WorldUpdateFailStuck() Error: We're called BUT mState == -1 (fail)");
+	console.assert(((pFail) && mState != 1) || (!pFail), "WorldUpdateFailStuck() Error: We're called BUT we're NOT stuck and mState is already 1 (fail)");
 
 	MusicStop();
 
@@ -13604,7 +13662,12 @@ function Player()
 							if (mGrowCount == 0)
 							{									
 								mGrowDie = false;
+								
+								// copied from WorldResetFinish
+								mWorldLevelColour = mWorldLevelColourType.Bonus; 
+								mCanvasMainContext.strokeStyle = "rgb(255, 255, 0)";
 								mSolveUpdateColorFlag = false;								
+								CanvasOffscreenTileRefresh();
 
 								if (mWeekdayLevelsRemaining == 1)
 								{
@@ -13949,7 +14012,7 @@ function Player()
 					WorldEndNew();
 				}
 									
-				else if ( (mState != -1) || (mTalkRandomFailState > 0) )
+				else if ( (mState != 1) || (mTalkRandomFailState > 0) )
 				{
 					// <SUCCESS1>
 					if ((mTileTotal <= 1) && (mPlayFieldDivs[this.xyIndex].extra == 0))
@@ -14380,10 +14443,10 @@ function Player()
 		// Put the rotated Canvas back (I don't fully understand this, but it works)
 		mCanvasMainContext.translate(-jimLeft, -jimTop);
 
-		if ((mWorldState == 0) || (mWorldState == 2))
+		if (this.transform.jimWidth > mTileSize * 2)
 		{
 			// need original LARGE image to prevent scaled pizelization (especially on small levels)
-			let img = document.getElementById("face" + this.faceState + "" + this.blinkState); 
+			let img = document.getElementById("face" + (this.faceState + 1) + "" + this.blinkState); 
 			mCanvasMainContext.drawImage(img
 				, 0, 0
 				, img.width, img.height 
@@ -14399,7 +14462,7 @@ function Player()
 			// sometimes the image won't be scaled, giving a dash of performance
 			// drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)
 			mCanvasMainContext.drawImage(mCanvasOffscreenPlayer
-				, 0, (this.faceState * 2 + this.blinkState) * mTileSize
+				, 0, (1 + this.faceState * 2 + this.blinkState) * mTileSize
 				, mTileSize, mTileSize 
 
 				, Math.floor(jimLeft - this.transform.jimWidth * 0.5)
@@ -14567,7 +14630,12 @@ function Browser()
 
 	this.OnKeyUp = function(pEvent)
 	{
-		if (pEvent.keyCode == 27)
+		if (pEvent.keyCode == 71) // G
+		{
+			if (mDebugToggle == 0) { mDebugToggle = 1; } else { mDebugToggle = 0; } 
+		}
+
+		else if (pEvent.keyCode == 27)
 		{
 			if (mWorldState == 1) { MenuMain(null, mWorldState); }
 		}
@@ -14581,7 +14649,7 @@ function Browser()
 
 		else if (mWorldState > 0)
 		{	
-			if (pEvent.keyCode == 70)
+			if (pEvent.keyCode == 70)   // F
 			{ 
 				WordShow("DEBUG<BR>SUCCESS!", "#FFFFFF", "#0000FF", 1.2, 2000 + 1500, 0.015);
 				SoundBufferPlay(mSoundBufferMisc, 1, SoundBufferMiscType.soundthud);
@@ -15166,21 +15234,22 @@ function Browser_OnMouseMove(pEvent) { gBrowser.OnMouseMove(pEvent); }
 <DIV Id="mouse" Style="position:absolute; visibility:hidden; white-space:nowrap; z-index:40; font-size:80px; left:0px; top:0px; width:10px; height:10px; overflow:visible;"></DIV>
 
 <!-- Need to put these images together in one IMG strip (drawImage suppports this) -->
-<IMG ID='faceshadow' Src='myface-00-shadow.png' Style='width:100%; height:100%; display:none;'>
+<!-- Need to put these images together in one IMG strip (drawImage suppports this) -->
+<IMG ID='face00' Src='myface-00-shadow.png' Style='width:100%; height:100%; display:none;'>
 
-<IMG ID='face00' Src='myface-01-normal.png' Style='width:100%; height:100%; display:none;'>
-<IMG ID='face01' Src='myface-01-normal-blink.png' Style='width:100%; height:100%; display:none;'>
-<IMG ID='face10' Src='myface-02-fail.png' Style='width:100%; height:100%; display:none;'>
-<IMG ID='face11' Src='myface-02-fail-blink.png' Style='width:100%; height:100%; display:none;'>
-<IMG ID='face20' Src='myface-03-afterfail.png' Style='width:100%; height:100%; display:none;'>
-<IMG ID='face21' Src='myface-03-afterfail-blink.png' Style='width:100%; height:100%; display:none;'>
-<IMG ID='face30' Src='myface-04-success.png' Style='width:100%; height:100%; display:none;'>
-<IMG ID='face31' Src='myface-04-success-blink.png' Style='width:100%; height:100%; display:none;'>
+<IMG ID='face10' Src='myface-01-normal.png' Style='width:100%; height:100%; display:none;'>
+<IMG ID='face11' Src='myface-01-normal-blink.png' Style='width:100%; height:100%; display:none;'>
+<IMG ID='face20' Src='myface-02-fail.png' Style='width:100%; height:100%; display:none;'>
+<IMG ID='face21' Src='myface-02-fail-blink.png' Style='width:100%; height:100%; display:none;'>
+<IMG ID='face30' Src='myface-03-afterfail.png' Style='width:100%; height:100%; display:none;'>
+<IMG ID='face31' Src='myface-03-afterfail-blink.png' Style='width:100%; height:100%; display:none;'>
+<IMG ID='face40' Src='myface-04-success.png' Style='width:100%; height:100%; display:none;'>
+<IMG ID='face41' Src='myface-04-success-blink.png' Style='width:100%; height:100%; display:none;'>
 
-<IMG ID='face40' Src='myface-05-pink-normal.png' Style='width:100%; height:100%; display:none;'>
-<IMG ID='face41' Src='myface-05-pink-normal-blink.png' Style='width:100%; height:100%; display:none;'>
-<IMG ID='face50' Src='myface-06-pink-fail.png' Style='width:100%; height:100%; display:none;'>
-<IMG ID='face51' Src='myface-06-pink-fail-blink.png' Style='width:100%; height:100%; display:none;'>
+<IMG ID='face50' Src='myface-05-pink-normal.png' Style='width:100%; height:100%; display:none;'>
+<IMG ID='face51' Src='myface-05-pink-normal-blink.png' Style='width:100%; height:100%; display:none;'>
+<IMG ID='face60' Src='myface-06-pink-fail.png' Style='width:100%; height:100%; display:none;'>
+<IMG ID='face61' Src='myface-06-pink-fail-blink.png' Style='width:100%; height:100%; display:none;'>
 
 <DIV ID="StatTopLeftDiv" Style='position:absolute; visibility:hidden; left:0px; top:0px; width:auto; height:auto; padding:calc(100vh * 0.05) 0px 0px calc(100vw * 0.05); margin:0px; z-index:2;'>&nbsp;</DIV>
 <DIV ID="StatTopRightDiv" Style='position:absolute; visibility:hidden; right:0px; top:0px; width:auto; height:auto; padding:calc(100vh * 0.05) calc(100vw * 0.05) 0px 0px; margin:0px; z-index:2;'>&nbsp;</DIV>
