@@ -18,7 +18,7 @@ const urlParams = new URLSearchParams(window.location.search);
 var configCacheBreaker = Math.floor(Math.random() * 10000);
 var configDebug = 0;
 var configPaid = 1;
-var configVersion = "2024-11-04";
+var configVersion = "2024-11-11";
 var configMouseDisable = false;
 var configAnalytics = 1;
 </SCRIPT>
@@ -36,10 +36,18 @@ var configAnalytics = 1;
 </script>
 
 <!--
-TODO: Extreme: Group0: Extra added BUT need to be re-exported to files.
-TODO: Extreme:DayTime: ADD Extra, then create files
 
-Remove SolveUpdate error trap.
+TODO: Player Position -1, -1 > random position.
+
+REMEMBER: Turn on ESCAPE addition.
+
+CHECK: SolveUpdate using full amount again.
+
+DONE. TODO: Extreme: Group0: Extra added BUT need to be re-exported to files.
+
+DONE. TODO: Extreme:DayTime: ADD Extra, then create files
+
+CHECK. Remove SolveUpdate error trap.
 
 new Leverl: Invisible: Eliminate line
 new level: Invisible: Eliminate 1/3rd strip (vertical or horizontal)
@@ -228,6 +236,8 @@ padding-bottom:calc(100vh * 0.035);
 
 <SCRIPT>
 "use strict"; 
+
+var mWorldLevelTileColorRFinal = -1, mWorldLevelTileColorGFinal = -1, mWorldLevelTileColorBFinal = -1;
 
 var mDebugToggle = 0;
 
@@ -762,13 +772,13 @@ function CopyStatsToClipboard(pWorldMode, pWorldEvening)
 	// Title
 	text += "\u{1F611} YCAGB\n";   // In a text message (on my phone), "You Can Always Go Back" splits across lines
 
-	// Weekday   "II: Samey"    (adding "Evening" splits across lines)
+	// WEEKDAYS   "II: SAMEY"    (adding "Evening" splits across lines)
 	text += "\u{1F611} ";
-	let caption = mWorldModeMeta[pWorldMode].caption;
-	if (pWorldMode > 1) { caption = "\"" + caption.replace("Challenge ", "") + "\""; }
+	let caption = mWorldModeMeta[pWorldMode].caption.toUpperCase();
+	if (pWorldMode > 1) { caption = "\"" + caption.replace("CHALLENGE ", "") + "\""; }
 	text += caption + "\n";
 
-	if (pWorldEvening > 0) { text += "\u{1F611} Evening\n"; }
+	if (pWorldEvening > 0) { text += "\u{1F611} EVENING\n"; }
 
 	// Totals
 	let totalSteps = 0, totalTime = 0, totalFail = 0;
@@ -2184,7 +2194,7 @@ function UserData()
 		// MUST ONLY BE CALLED BY WorldChange. mWorldEvening MUST stay in sync with SaveCurrentDay
 		// otherwise could play Daytime and save Evening
 		let d = null;
-		for (let index = 0; index < (mWorldModeMeta.length - 2) * 7; index++)   // 0=Sunday, 6=Sat
+		for (let index = 0; index < (mWorldModeMeta.length - 1) * 7; index++)   // 0=Sunday, 6=Sat
 		{
 			this.weekday[index] = new Array(2);   // short form doesn't allow length (which might not do anything)
 
@@ -2352,6 +2362,9 @@ var WorldType =
 	, RailsBonusMirror: 32   // ONLY extreme
 
 	, Monolith2: 33
+	, Chunk: 34
+	, Snake4x4: 35
+	, Patch4x4: 36
 };
 
 var mWorldLevelColourType =
@@ -2463,6 +2476,7 @@ console.log("DONE");
 	console.log("--\n\n");	
 	console.log(hold);
 */
+
 	if (false)
 	{
 
@@ -2560,7 +2574,7 @@ function WorldCheck()
 	for (let index = 0; index < mTileXYCount; index++) { if (mPlayField[index] > 0) { checkTileTotal++; } }
 	if (mTileTotal != checkTileTotal)
 	{
-		errorMessage += "Main: mTileTotal '" + mTileTotal + "' out-of-sync with mPlayfield '" + checkTileTotal + "'\n";		
+		errorMessage += "Main: mTileTotal '" + mTileTotal + "' out-of-sync with mPlayField '" + checkTileTotal + "'\n";		
 	}
 	// </mPlayField>
 			
@@ -2655,7 +2669,7 @@ function WorldCheck()
 						var hold2 = "" + mSolvedPlayfield[answer].length + ":";
 						for (var index333 = 0; index333 < mSolvedPlayfield[answer].length; index333++) { hold2 += mSolvedPlayfield[answer][index333]; }
 						
-						errorMessage += "mPlayfield and Answer[" + answer + "] do NOT match!\n" + hold1 + "\n" + hold2 + "\n";
+						errorMessage += "mPlayField and Answer[" + answer + "] do NOT match!\n" + hold1 + "\n" + hold2 + "\n";
 						break;
 					}
 				}
@@ -3859,6 +3873,7 @@ function TalkTypeExtraGenerateStart()
 	// <TRY RANDOM EMPTY SPOT>
 	// add the tile and ensure it FAILS, do NOT add another solution
 	let dateFailSafe = Date.now();
+	const dateFailSafeLimit = 1000 * 300; // 5 minutes. Used to be 1000 * 180; // 3 minutes
 	var edgeCount = 0;
 	for (var tries = 0; tries < 4; tries++)
 	{
@@ -3895,13 +3910,13 @@ function TalkTypeExtraGenerateStart()
 						mPlayFieldDivs[xyIndex].extra = 0;
 					}
 					
-					if ( (extraCount == mTalkStates[TalkType.tileExtra]) || ((Date.now() - dateFailSafe) > 1000 * 180) ) { break; }
+					if ( (extraCount == mTalkStates[TalkType.tileExtra]) || ((Date.now() - dateFailSafe) > dateFailSafeLimit) ) { break; }
 				}
 			}
 		}
 		if (
 			(extraCount == mTalkStates[TalkType.tileExtra])
-			|| ((Date.now() - dateFailSafe) > 1000 * 180)
+			|| ((Date.now() - dateFailSafe) > dateFailSafeLimit)
 		) { break; }
 	}
 	// </TRY RANDOM EMPTY SPOT>
@@ -4093,28 +4108,20 @@ function TalkTypeInvisibleSet(pStateType2, pStart = false)
 function TalkTypeFailSet(pStateType2, pFlash = true)
 {
 	mTalkStates[TalkType.fail] = pStateType2;
+	WorldTileColourSet();
+	CanvasOffscreenTileRefresh();
+	TilesWhite();
+
 	if (mTalkStates[TalkType.fail] == 1)
 	{
 		// Turn Tiles ON
-		var tile = null;
-		for (var index = 0; index < mTileXYCount; index++)
+		if (pFlash)
 		{
-			if (mPlayField[index] > 0)
+			for (var index = 0; index < mTileXYCount; index++)
 			{
-				tile = mPlayFieldDivs[index];
-				if (mUrineState > 0)
-				{
-					TileSetColor(tile, 255, 255, 192, 1);
-				}
-				else
-				{
-					TileSetColor(tile, 255, 255, 255, 1);
-				}
-				CanvasOffscreenTileRefresh();
-
-				if (pFlash)
-				{
-					TileSetColorTemp(tile, 1000 + parseInt(Math.random() * 1000), 255, 255, 0);
+				if (mPlayField[index] > 0)
+				{		
+					TileSetColorTemp(mPlayFieldDivs[index], 1000 + parseInt(Math.random() * 1000), 255, 255, 0);
 				}
 			}
 		}
@@ -4128,22 +4135,16 @@ function TalkTypeFailSet(pStateType2, pFlash = true)
 	else
 	{
 		// Turn Tiles OFF
-		console.log("Turn Tiles Off!");
-		var tile = null;
-		for (var index = 0; index < mTileXYCount; index++)
+		if (pFlash)
 		{
-			if (mPlayField[index] > 0)
+			for (var index = 0; index < mTileXYCount; index++)
 			{
-				tile = mPlayFieldDivs[index];
-				TileSetColor(tile, 192, 192, 192, 1);
-				CanvasOffscreenTileRefresh();
-				
-				if (pFlash)
+				if (mPlayField[index] > 0)
 				{
-					TileSetColorTemp(tile, 1000 + parseInt(Math.random() * 4000), 255, 0, 0);
+					TileSetColorTemp(mPlayFieldDivs[index], 1000 + parseInt(Math.random() * 4000), 255, 0, 0);
 				}
-			}
-		}	
+			}	
+		}
 
 		if ((mMusic != null) && (mMusic.talkIndex == -1))
 		{	
@@ -5013,7 +5014,7 @@ function MusicSelect()
 		// Something must always be playing ... decide what!
 		if (mWorldState == 0)
 		{
-			MusicPlay("music-song4-construction.mp3", 0.01);   // DEBUGJIM. Song >appears< to keep browser window alive when focus lost.
+			MusicPlay("music-song4-construction.mp3", 0.001);   // DEBUGJIM. Song >appears< to keep browser window alive when focus lost.
 		}
 		else if ( (mWorldMode > 0) && (mWeekdayLevelsRemaining == 1) )
 		{
@@ -5641,20 +5642,42 @@ this.RemovePlayer = function(pPlayer)
 		pPlayer.xyIndex = -1;
 		pPlayer.state = 0;
 	}
+
+	// Remove Pink trail
+	if (pPlayer.type > 0)
+	{
+		for (let index = 0; index < mTileXYCount; index++)
+		{
+			if (mPlayFieldDivs[index].pink > 0)
+			{
+				mPlayFieldDivs[index].pink--;
+				if (mPlayFieldDivs[index].pink == 0)
+				{
+					// return permanent colour
+					TileSetColor(mPlayFieldDivs[index], mWorldLevelTileColorRFinal, mWorldLevelTileColorGFinal, mWorldLevelTileColorBFinal, 1);
+				}
+				TileSetColorTemp(mPlayFieldDivs[index], 500 + Math.floor(Math.random() * 500), 255, 100, 255);   // Flash bright pink
+			}
+		}
+	}
 }
 
 this.Update = function()
 {
 	function ColourTile(pXYIndex, pTempTime = 500)
 	{
-		if (mPlayFieldDivs[pXYIndex].finishTileState == 0)
+		if (
+			(mState != 1)
+			&& (mPlayFieldDivs[pXYIndex].finishTileState == 0)
+		)
 		{
-			// Pink leaves pink trails
+			// Pink leaves permanent pink trails
 			if (player.type > 0)
 			{
-				// TileSetColor(mPlayFieldDivs[pXYIndex], 192, 192, 192, 1);
-				TileSetColor(mPlayFieldDivs[pXYIndex], 255, 100, 255, 2);
-				TileSetColorTemp(mPlayFieldDivs[pXYIndex], pTempTime, 255, 100, 255);
+				mPlayFieldDivs[pXYIndex].pink += 1;
+				TileSetColor(mPlayFieldDivs[pXYIndex], 255, 192, 255, 1);   // change permanently to light pink (fades back to this)
+				TileSetColor(mPlayFieldDivs[pXYIndex], 255, 100, 255, 2);   // change instantly to bright pink 
+				TileSetColorTemp(mPlayFieldDivs[pXYIndex], pTempTime, 255, 100, 255);   // keep bright pink for a few seconds (before fading)
 			}
 			// Regular leaves yellow (considering black)
 			else
@@ -5940,11 +5963,36 @@ this.Update = function()
 										}
 										// <STOP>
 										else if (
-											( (player.type == 0) && (player.keyIndex + 1 == player.keyCount) )
-											|| ( (player.type == 1) && (player.solveIndex <= 1) && (mSolvedPlayfield[player.solveIndex][player.xyIndexOld] == 1) )
+											(mState == 1)
+											||
+											(
+												( (player.type == 0) && (player.keyIndex + 1 == player.keyCount) )
+												|| ( (player.type == 1) && (player.solveIndex <= 1) && (mSolvedPlayfield[player.solveIndex][player.xyIndexOld] == 1) )
+											)
 										)
 										{
-											ColourTile(player.xyIndex, 1000);
+											// <PINK LANDED>
+											if (mState != 1)
+											{
+												if (player.type > 0)
+												{
+													for (let index = 0; index < mTileXYCount; index++)
+													{
+														if (mPlayFieldDivs[index].pink > 0) { mPlayFieldDivs[index].pink--; }
+														if (mPlayFieldDivs[index].pink == 0)
+														{
+															// return permanent colour
+															TileSetColor(mPlayFieldDivs[index], mWorldLevelTileColorRFinal, mWorldLevelTileColorGFinal, mWorldLevelTileColorBFinal, 1);
+														}
+														TileSetColorTemp(mPlayFieldDivs[index], 500 + Math.floor(Math.random() * 1500), 255, 100, 255);   // Flash bright pink
+													}
+												}
+												else
+												{
+													ColourTile(player.xyIndex, 1000);
+												}
+											}
+											// </PINK LANDED>
 											player.FaceChange(2);
 											
 											// If multiple players end up on this spot, GROW it.
@@ -6935,8 +6983,12 @@ function WordUpdateBackground()
 
 	if (mWorldState == 0)
 	{
-		if (mWorldResetUpdateCount >= 50)
+		if (mWorldResetUpdateCount >= 0)
 		{
+			let diff = (mHistoryPushIndex < mHistoryPopIndex)
+				? (mHistoryPushIndex + mSolveCrazyPlayFields.length - mHistoryPopIndex)
+				: (mHistoryPushIndex - mHistoryPopIndex);
+		
 			var s = "Creating " + (mLevelGenerateCount + 1);
 			s += "<BR>" + mWorldType + ":" + Object.keys(WorldType)[mWorldType];
 			if (mWorldExtreme) { s += "<BR>Extreme"; }
@@ -6952,7 +7004,10 @@ function WordUpdateBackground()
 			s += ""
 				+ "<BR>Attempt " + (mSolveStatAttempt + 1).toLocaleString()
 				+ "<BR>Solutions:" + mSolutions
-				+ "<BR>" + mTileXCount + "x" + mTileYCount;
+				+ "<BR>" + mTileXCount + "x" + mTileYCount
+				+ "<BR>" + mHistoryPopIndex + ":" + mHistoryPushIndex
+				+ "<BR>" + diff + " " + mStatePushPopped
+				+ "";
 
 			if ( (mState != 1) && (mSolveUpdateCount > 0) && (mSolutions == 0) )
 			{
@@ -7185,7 +7240,7 @@ function WordUpdate()
 	{	
 		if (mWorldUpdateTitleRunning == 0)    // ONLY applies to the Title Screen "You Can Always Go Back"
 		{
-			if (mWorldMode > 0) { WordUpdateBackgroundWeekday(); } else { WordUpdateBackground(); }
+			if ((mWorldState > 0) && (mWorldMode > 0)) { WordUpdateBackgroundWeekday(); } else { WordUpdateBackground(); }
 		}
 	}
 	// </BACKGROUND>	
@@ -7301,21 +7356,15 @@ function TilesWhite()
 	// doesn't touch State of tiles, JUST the colour
 	// do this for hidden tiles
 	// do this for tiles taht aren't part of playfield (because they might get added)
-	var tile = null;
-	for (var index = 0; index < mPlayFieldDivs.length; index++)
+	let tile = null;
+	for (let index = 0; index < mPlayFieldDivs.length; index++)
 	{
 		tile = mPlayFieldDivs[index];
-		if (mUrineState > 0)
-		{
-			TileSetColor(tile, 255, 255, 192, 1);
-		}
-		else if (mTalkStates[TalkType.fail] == 0)
-		{
-			TileSetColor(tile, 192, 192, 192, 1);
-		}
+		tile.pink = 0;
+		
 		// player touched visible concrete and now it remeains green (even during fail state)
 		// mercy may also being granted
-		else if (
+		if (
 			(tile.concreteBlock == 2)
 			|| ((tile.concreteBlock > 0) && (mWorldRepeatCount >= 6))
 		)
@@ -7340,7 +7389,7 @@ function TilesWhite()
 		// Default. Fade into White
 		else
 		{
-			TileSetColor(tile, 255, 255, 255, 1);			
+			TileSetColor(tile, mWorldLevelTileColorRFinal, mWorldLevelTileColorGFinal, mWorldLevelTileColorBFinal, 1);			
 		}
 	}	
 
@@ -7791,6 +7840,7 @@ function TilesUpdate()
 				if (
 					(Math.floor(tileT.jimWidth) == mTileSize2)
 					&& ((tile.colorR == tile.colorRFinal) && (tile.colorG == tile.colorGFinal) && (tile.colorB == tile.colorBFinal))
+					&& (tile.pink == 0)
 					&& (mDebugToggle == 0)
 				)
 				{
@@ -8421,6 +8471,8 @@ function Tile()
 	this.colorG = 0.0;
 	this.colorB = 0.0;
 	
+	this.pink = 0;
+	
 	this.finalTile = 0;   // mostly aesthetic, indicates this is the final tile of a solution (possibly multiple)
 	this.visiblePermanent = 1;   // Talk can set this to remove tile
 	this.visibleState = 1;   // replaced div.style.visibility. defaults to ON. controlled by this.visiblePermanent (previous line)
@@ -8437,10 +8489,22 @@ function Tile()
 			
 			this.visualState = 0;   // 0=unused/offscreen 1=onscreen, untouched 2=onscreen, touched 3=onscreen, touched badly
 			this.solved = 0;
-			
-			this.colorRFinal = 255;	// adjustable colors for Bonus, Boss, Milestone and OneHundred
+
+			this.colorRFinal = 255;	// Tiles always return to this color. Might always be white.
 			this.colorGFinal = 255;
 			this.colorBFinal = 255;
+
+			this.colorTempTime = 0;   // Milliseconds to hold Temp color (then revert to -1, -1, -1)
+			this.colorRTemp = -1;   // Adjustable colors for Thinking, Bonus, Boss, Milestone and OneHundred
+			this.colorGTemp = -1;
+			this.colorBTemp = -1;
+
+			// current colour - counters leading up to colorRFinal (formerly DIV colour)
+			this.colorR = 0.0;
+			this.colorG = 0.0;
+			this.colorB = 0.0;
+			
+			this.pink = 0;
 		}
 
 		this.finalTile = 0;
@@ -8691,15 +8755,15 @@ function Transform(pParentDiv = null)
 // ---------------------------------------------------------------------------------------------------------------------
 // <SOLVING>
 // ---------------------------------------------------------------------------------------------------------------------
-function AStarTotal(pxyIndex, pPlayField)
+function AStarTotal(pXYIndex, pPlayField)
 {
-	console.assert(pPlayField[pxyIndex] == 1, "Initial pPlayField[pxyIndex] == 0!");
+	console.assert(pPlayField[pXYIndex] == 1, "Initial pPlayField[pXYIndex] == 0!");
 	
 	var historyPopIndex = 0, historyPushIndex = 0;
 	// mAStarPlayField = pPlayField.slice(0, mTileXYCount);
 	for (var index = 0; index < mTileXYCount; index++) { mAStarPlayField[index] = pPlayField[index]; };
-	mAStarPlayField[pxyIndex] = 0;
-	mAStarxyIndexes[historyPushIndex] = pxyIndex;
+	mAStarPlayField[pXYIndex] = 0;
+	mAStarxyIndexes[historyPushIndex] = pXYIndex;
 	historyPushIndex++;	
 	
 	var xyIndex = -1;
@@ -8811,6 +8875,24 @@ function EdgeCount(x, y)
 	return counter;
 }
 
+function EdgeCountAll8(x, y)
+{
+	console.assert(y * mTileXCount + x < mTileXYCount);
+	
+	var counter = 0;
+	if ( (x - 1 < 0) || (mPlayField[y * mTileXCount + (x - 1)] == 0) ) { counter++; }
+	if ( (x + 1 >= mTileXCount) || (mPlayField[y * mTileXCount + (x + 1)] == 0) ) { counter++; }
+	if ( (y - 1 < 0) || (mPlayField[(y - 1) * mTileXCount + x] == 0) ) { counter++; }
+	if ( (y + 1 >= mTileYCount) || (mPlayField[(y + 1) * mTileXCount + x] == 0) ) { counter++; }
+
+	if ( ((x - 1 < 0) && (y - 1 < 0)) || (mPlayField[(y - 1) * mTileXCount + (x - 1)] == 0) ) { counter++; }
+	if ( ((x + 1 < 0) && (y - 1 < 0)) || (mPlayField[(y - 1) * mTileXCount + (x + 1)] == 0) ) { counter++; }
+	if ( ((x - 1 < 0) && (y + 1 < 0)) || (mPlayField[(y + 1) * mTileXCount + (x - 1)] == 0) ) { counter++; }
+	if ( ((x + 1 < 0) && (y + 1 < 0)) || (mPlayField[(y + 1) * mTileXCount + (x + 1)] == 0) ) { counter++; }
+
+	return counter;
+}
+
 function EdgeCountRemember(x, y)
 {
 	console.assert(y * mTileXCount + x < mTileXYCount);
@@ -8882,7 +8964,7 @@ function SolveExaminePlayfield(pSolvePlayerX, pSolvePlayerY)
 	}
 }
 
-function DebugSolveCompareHistory(pxyIndex, pCrazyIndex)
+function DebugSolveCompareHistory(pXYIndex, pCrazyIndex)
 {
 	return false;
 	
@@ -8891,8 +8973,8 @@ function DebugSolveCompareHistory(pxyIndex, pCrazyIndex)
 		
 	// Make a copy of the PROPOSED playfield to compare against
 	for (var index = 0; index < mTileXYCount; index++) { mAStarPlayField[index] = mSolveCrazyPlayFields[pCrazyIndex][index]; }
-	console.assert(mAStarPlayField[pxyIndex] == 1, "SolveCompareHistory: Passed playfield where xyIndex was already explored.");
-	mAStarPlayField[pxyIndex] = 0;
+	console.assert(mAStarPlayField[pXYIndex] == 1, "SolveCompareHistory: Passed playfield where xyIndex was already explored.");
+	mAStarPlayField[pXYIndex] = 0;
 
 	// Does it exist?
 	var same = false;	
@@ -8903,7 +8985,7 @@ function DebugSolveCompareHistory(pxyIndex, pCrazyIndex)
 		{
 			if (mSolveCrazyPlayFields[crazyIndex][index] != mAStarPlayField[index]) { same = false; break; }
 		}
-		if (same == true) { console.log("SAME! " + pCrazyIndex + ":" + pxyIndex); break; }
+		if (same == true) { console.log("SAME! " + pCrazyIndex + ":" + pXYIndex); break; }
 	}
 	return same;
 }
@@ -8954,8 +9036,6 @@ function SolveUpdate(pMilliseconds)
 	let newState = 0;	
 	let milliseconds = Date.now();
 
-	try
-	{
 	// <INITIALIZE HEAVY CHECK>
 	// copy first playfield as the root of the recursive array
 	if (mSolveUpdateCount == 1)
@@ -9027,95 +9107,103 @@ function SolveUpdate(pMilliseconds)
 			// <KEEP LOOKING>
 			else
 			{
-				// LEFT -1
-				if ( ((xyIndex % mTileXCount) > 0) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex - 1] > 0) )
+				// historyPopIndex must NEVER overlap/suprass mHistoryPushIndex
+				let historyDiff = (mHistoryPushIndex < historyCurrentIndex) ? (mHistoryPushIndex + mSolveCrazyPlayFields.length) - historyCurrentIndex : mHistoryPushIndex - historyCurrentIndex;
+				if (historyDiff > mSolveCrazyPlayFields.length - 10)   // they're too close, make some room. 4 more directions could be added to stack. 
 				{
-					mSolveCrazyPlayFields[historyCurrentIndex][xyIndex] = -1;
-					// feel i could calculate this later once I have valid paths. don't care about turns of failures.
-					turnsHold = turns;
-					if (
-						( ((xyIndex - mTileXCount) >= 0) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex - mTileXCount] == -4) )
-						|| ( (xyIndex + mTileXCount < mTileXYCount) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex + mTileXCount] == -3) )
-					)
+					// remove earlier entries (moving forward with new paths yields best results, unsure why)
+					// even increasing by 10% this happens ALL THE TIME
+					mHistoryPopIndex = (mHistoryPopIndex + Math.floor(mSolveCrazyPlayFields.length * 0.1)) % mSolveCrazyPlayFields.length;
+					mStatePushPopped = true;   // we have NOT explored all paths, CANNOT say fail
+				}
+				else
+				{
+					// LEFT -1
+					if ( ((xyIndex % mTileXCount) > 0) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex - 1] > 0) )
 					{
-						turnsHold++;
+						mSolveCrazyPlayFields[historyCurrentIndex][xyIndex] = -1;
+						// feel i could calculate this later once I have valid paths. don't care about turns of failures.
+						turnsHold = turns;
+						if (
+							( ((xyIndex - mTileXCount) >= 0) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex - mTileXCount] == -4) )
+							|| ( (xyIndex + mTileXCount < mTileXYCount) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex + mTileXCount] == -3) )
+						)
+						{
+							turnsHold++;
+						}
+						
+						for (var index = 0; index < mTileXYCount; index++) { mSolveCrazyPlayFields[mHistoryPushIndex][index] = mSolveCrazyPlayFields[historyCurrentIndex][index]; };
+						mHistoryxyIndexes[mHistoryPushIndex]= xyIndex - 1;
+						mHistoryCounts[mHistoryPushIndex] = count + 1;
+						mHistoryTurns[mHistoryPushIndex] = turnsHold;
+						mHistoryPushIndex = (mHistoryPushIndex + 1) % mSolveCrazyPlayFields.length;
+					}		
+			
+					// RIGHT -2
+					if ( ((xyIndex % mTileXCount) < (mTileXCount - 1)) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex + 1] > 0) )
+					{
+						mSolveCrazyPlayFields[historyCurrentIndex][xyIndex] = -2;
+						turnsHold = turns;
+						if (
+							( ((xyIndex - mTileXCount) >= 0) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex - mTileXCount] == -4) )
+							|| ( (xyIndex + mTileXCount < mTileXYCount) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex + mTileXCount] == -3) )
+						)
+						{
+							turnsHold++;
+						}
+
+						for (var index = 0; index < mTileXYCount; index++) { mSolveCrazyPlayFields[mHistoryPushIndex][index] = mSolveCrazyPlayFields[historyCurrentIndex][index]; };
+						mHistoryxyIndexes[mHistoryPushIndex]= xyIndex + 1;
+						mHistoryCounts[mHistoryPushIndex] = count + 1;
+						mHistoryTurns[mHistoryPushIndex] = turnsHold;
+						mHistoryPushIndex = (mHistoryPushIndex + 1) % mSolveCrazyPlayFields.length;
 					}
 					
-					for (var index = 0; index < mTileXYCount; index++) { mSolveCrazyPlayFields[mHistoryPushIndex][index] = mSolveCrazyPlayFields[historyCurrentIndex][index]; };
-					mHistoryxyIndexes[mHistoryPushIndex]= xyIndex - 1;
-					mHistoryCounts[mHistoryPushIndex] = count + 1;
-					mHistoryTurns[mHistoryPushIndex] = turnsHold;
-					mHistoryPushIndex = (mHistoryPushIndex + 1) % mSolveCrazyPlayFields.length;
-					if (mHistoryPushIndex == mHistoryPopIndex) { mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length; mStatePushPopped = true; }
-				}		
-		
-				// RIGHT -2
-				if ( ((xyIndex % mTileXCount) < (mTileXCount - 1)) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex + 1] > 0) )
-				{
-					mSolveCrazyPlayFields[historyCurrentIndex][xyIndex] = -2;
-					turnsHold = turns;
-					if (
-						( ((xyIndex - mTileXCount) >= 0) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex - mTileXCount] == -4) )
-						|| ( (xyIndex + mTileXCount < mTileXYCount) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex + mTileXCount] == -3) )
-					)
+					// UP -3
+					if ( ((xyIndex - mTileXCount) >= 0) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex - mTileXCount] > 0) )
 					{
-						turnsHold++;
-					}
+						mSolveCrazyPlayFields[historyCurrentIndex][xyIndex] = -3;
+						turnsHold = turns;
+						if (
+							( ((xyIndex % mTileXCount) > 0) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex - 1] == -2) )   // tile to left points right
+							|| ( ((xyIndex % mTileXCount) < (mTileXCount - 1)) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex + 1] == -1) )   // tile to right points left
+						)
+						{
+							 turnsHold++;
+						}
 
-					for (var index = 0; index < mTileXYCount; index++) { mSolveCrazyPlayFields[mHistoryPushIndex][index] = mSolveCrazyPlayFields[historyCurrentIndex][index]; };
-					mHistoryxyIndexes[mHistoryPushIndex]= xyIndex + 1;
-					mHistoryCounts[mHistoryPushIndex] = count + 1;
-					mHistoryTurns[mHistoryPushIndex] = turnsHold;
-					mHistoryPushIndex = (mHistoryPushIndex + 1) % mSolveCrazyPlayFields.length;
-					if (mHistoryPushIndex == mHistoryPopIndex) { mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length; mStatePushPopped = true; }
+						// mSolveCrazyPlayFields[mHistoryPushIndex] = mSolveCrazyPlayFields[historyCurrentIndex].slice(0, mTileXYCount);
+						for (var index = 0; index < mTileXYCount; index++) { mSolveCrazyPlayFields[mHistoryPushIndex][index] = mSolveCrazyPlayFields[historyCurrentIndex][index]; };
+						mHistoryxyIndexes[mHistoryPushIndex]= xyIndex - mTileXCount;
+						mHistoryCounts[mHistoryPushIndex] = count + 1;
+						mHistoryTurns[mHistoryPushIndex] = turnsHold;					
+						mHistoryPushIndex = (mHistoryPushIndex + 1) % mSolveCrazyPlayFields.length;
+					}			
+			
+					// DOWN -4
+					if  ( (xyIndex + mTileXCount < mTileXYCount) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex + mTileXCount] > 0) )
+					{
+						mSolveCrazyPlayFields[historyCurrentIndex][xyIndex] = -4;
+						turnsHold = turns;
+						if (
+							( ((xyIndex % mTileXCount) > 0) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex - 1] == -2) )   // tile to left points right
+							|| ( ((xyIndex % mTileXCount) < (mTileXCount - 1)) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex + 1] == -1) )   // tile to right points left
+						)
+						{
+							 turnsHold++;
+						}
+
+						// mSolveCrazyPlayFields[mHistoryPushIndex] = mSolveCrazyPlayFields[historyCurrentIndex].slice(0, mTileXYCount);
+						for (var index = 0; index < mTileXYCount; index++) { mSolveCrazyPlayFields[mHistoryPushIndex][index] = mSolveCrazyPlayFields[historyCurrentIndex][index]; };
+						mHistoryxyIndexes[mHistoryPushIndex]= xyIndex + mTileXCount;
+						mHistoryCounts[mHistoryPushIndex] = count + 1;
+						mHistoryTurns[mHistoryPushIndex] = turnsHold;					
+						mHistoryPushIndex = (mHistoryPushIndex + 1) % mSolveCrazyPlayFields.length;
+					}
+					
+					// if we get here, and no paths were taken, we wound up at a dead end/stuck (a path which ended but did NOT get rid of all tiles).
+					// regardless of good or dead path, we're done with this playfield (mHistoryPopIndex++ effectively discards it)
 				}
-				
-				// UP -3
-				if ( ((xyIndex - mTileXCount) >= 0) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex - mTileXCount] > 0) )
-				{
-					mSolveCrazyPlayFields[historyCurrentIndex][xyIndex] = -3;
-					turnsHold = turns;
-					if (
-						( ((xyIndex % mTileXCount) > 0) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex - 1] == -2) )   // tile to left points right
-						|| ( ((xyIndex % mTileXCount) < (mTileXCount - 1)) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex + 1] == -1) )   // tile to right points left
-					)
-					{
-						 turnsHold++;
-					}
-
-					// mSolveCrazyPlayFields[mHistoryPushIndex] = mSolveCrazyPlayFields[historyCurrentIndex].slice(0, mTileXYCount);
-					for (var index = 0; index < mTileXYCount; index++) { mSolveCrazyPlayFields[mHistoryPushIndex][index] = mSolveCrazyPlayFields[historyCurrentIndex][index]; };
-					mHistoryxyIndexes[mHistoryPushIndex]= xyIndex - mTileXCount;
-					mHistoryCounts[mHistoryPushIndex] = count + 1;
-					mHistoryTurns[mHistoryPushIndex] = turnsHold;					
-					mHistoryPushIndex = (mHistoryPushIndex + 1) % mSolveCrazyPlayFields.length;
-					if (mHistoryPushIndex == mHistoryPopIndex) { mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length; mStatePushPopped = true; }
-				}			
-		
-				// DOWN -4
-				if  ( (xyIndex + mTileXCount < mTileXYCount) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex + mTileXCount] > 0) )
-				{
-					mSolveCrazyPlayFields[historyCurrentIndex][xyIndex] = -4;
-					turnsHold = turns;
-					if (
-						( ((xyIndex % mTileXCount) > 0) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex - 1] == -2) )   // tile to left points right
-						|| ( ((xyIndex % mTileXCount) < (mTileXCount - 1)) && (mSolveCrazyPlayFields[historyCurrentIndex][xyIndex + 1] == -1) )   // tile to right points left
-					)
-					{
-						 turnsHold++;
-					}
-
-					// mSolveCrazyPlayFields[mHistoryPushIndex] = mSolveCrazyPlayFields[historyCurrentIndex].slice(0, mTileXYCount);
-					for (var index = 0; index < mTileXYCount; index++) { mSolveCrazyPlayFields[mHistoryPushIndex][index] = mSolveCrazyPlayFields[historyCurrentIndex][index]; };
-					mHistoryxyIndexes[mHistoryPushIndex]= xyIndex + mTileXCount;
-					mHistoryCounts[mHistoryPushIndex] = count + 1;
-					mHistoryTurns[mHistoryPushIndex] = turnsHold;					
-					mHistoryPushIndex = (mHistoryPushIndex + 1) % mSolveCrazyPlayFields.length;
-					if (mHistoryPushIndex == mHistoryPopIndex) { mHistoryPopIndex = (mHistoryPopIndex + 1) % mSolveCrazyPlayFields.length; mStatePushPopped = true; }
-				}
-				
-				// if we get here, and no paths were taken, we wound up at a dead end/stuck (a path which ended but did NOT get rid of all tiles).
-				// regardless of good or dead path, we're done with this playfield (mHistoryPopIndex++ effectively discards it)
 			}
 			// </KEEP LOOKING>
 
@@ -9141,8 +9229,6 @@ function SolveUpdate(pMilliseconds)
 	// </HEAVY CHECK>
 
 	mSolveUpdateCount++;
-	}
-	catch (err) { alert("SolveUpdate Error:\n" + err); }
 	return newState;
 }
 
@@ -9358,7 +9444,10 @@ function WorldChange(pWorldMode, pWorldDayOfWeek, pWorldEvening)
 
 function CanvasOffscreenTileRefresh()
 {
-	// FIX SPOTS!!!
+	// needs to be called when
+	// . WorldTileColour changes (circle filled in with it, usually white but UrineState impacts)
+	// . StrokeColor changes (bonus, onehundred impact)
+	// . playfield size changes (onresize event, browser)
 	
 	// if tile fillcolor or strokecolor changes, or mTileSize2 changes this must be rebuilt
 	// https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Optimizing_canvas
@@ -9386,16 +9475,7 @@ function CanvasOffscreenTileRefresh()
 	mCanvasOffscreenTileContext.strokeStyle = mCanvasMainContext.strokeStyle;
 	mCanvasOffscreenTileContext.stroke();
 
-	let holdFillStyle = "rgba(255, 255, 255, 1)";
-	if (mUrineState > 0)
-	{
-		holdFillStyle = "rgba(255, 255, 192, 1)";
-	}
-	else if (mTalkStates[TalkType.fail] == 0)
-	{
-		holdFillStyle = "rgba(192, 192, 192, 1)";
-	}
-	mCanvasOffscreenTileContext.fillStyle = holdFillStyle;
+	mCanvasOffscreenTileContext.fillStyle = "rgba(" + mWorldLevelTileColorRFinal + "," + mWorldLevelTileColorGFinal + "," + mWorldLevelTileColorBFinal + ",1)";
 	mCanvasOffscreenTileContext.fill();   // overlaps half the stroke. fixes for that overdraw required more computation and BeginPath removal
 }
 
@@ -9579,7 +9659,7 @@ FAILURE: Want WorldResetIncrease and WorldResetShift to share this, BUT it only 
 function WorldResetResizePlayfield(pChangeX, pChangeY, pNewTileXCount)
 {
 	// pChangeX, pChangeY - how much (positive OR negative) to change mTileXCount and mTileYCount by
-	// Assumes mTileXCOunt, mTileYCount and mPlayfield are CURRENT
+	// Assumes mTileXCOunt, mTileYCount and mPlayField are CURRENT
 	
 	mPlayer.left += pChangeX;
 	mPlayer.top += pChangeY;
@@ -9910,6 +9990,7 @@ function WorldResetNew()
 			alert("WorldResetNew Error: WorldCheck found problems in the JSON. mLevelIndex:'" + mLevelIndex + "'\n" + holdErrorMessage);
 		}
 		
+		/*
 		else if (
 			(mLevelGenerate == "fix")
 			&& ((mLevels[mLevelIndex].length > 15) && (mLevels[mLevelIndex][15] != null))
@@ -9921,6 +10002,7 @@ function WorldResetNew()
 			mWeekdayLevelsRemaining--;   // level is fixed, this moves to the next one.
 			window.setTimeout(WorldResetNew, 15, true); return;
 		}
+		*/
 
 		else
 		{
@@ -10027,14 +10109,35 @@ function WorldReset(pFull = true)
 	// if levels have not arrived yet, wait.
 	if (mLevels == null) { window.setTimeout(WorldReset, 500); return; }
 
+	/*
 	if (mTalkIndex => 30)
 	{
 		MenuFrankEnd();
 		return;
 	}
+	*/
 
 	WorldResetInitialize(pFull);
+	let total = mStatNewFrankLoss + mStatNewFrankWin + 1;
 
+	const myParam = urlParams.get("worldtype");
+	if (myParam != null)
+	{
+		if (pFull)
+		{
+			mTalkIndex = 4;
+			mStatNewFrankWin = 4;
+			mStatNewFrankLoss = 1;
+			total = 5;
+			
+			mLevelType = LevelType.Regular;
+			mWorldType = parseInt(myParam);
+			const myParam2 = urlParams.get("worldtypeextreme");
+			if ( (myParam2 != null) && (myParam2 != "") && (myParam2 == "true") ) { mWorldExtreme = true; }
+		}
+	}
+	else
+	{
 	// <SELECT A TYPE OF LEVEL>
 	// we'll either get it from thousands of levels in JSON, or we'll generate it (can take FOREVER)
 	if (pFull)
@@ -10070,18 +10173,8 @@ function WorldReset(pFull = true)
 		
 		mWorldType = -1;
 		mWorldExtreme = false;
-		
-		let total = mStatNewFrankLoss + mStatNewFrankWin + 1;
-		
-		const myParam = urlParams.get("worldtype");
-		if (myParam != null)
-		{
-			mLevelType = LevelType.Regular;
-			mWorldType = parseInt(myParam);
-			const myParam2 = urlParams.get("worldtypeextreme");
-			if ( (myParam2 != null) && (myParam2 != "") && (myParam2 == "true") ) { mWorldExtreme = true; }
-		}
-		else if (mTalkStates[TalkType.randomFail] == 1)
+	
+		if (mTalkStates[TalkType.randomFail] == 1)
 		{
 			// Fail is broken. Player MUST figure this out BEFORE gregg/frank/jake reveal it. MUST be easy
 			mLevelType = LevelType.Regular;
@@ -10338,8 +10431,6 @@ function WorldReset(pFull = true)
 	// </URINESTATE>
 	
 	// <LOAD LEVEL>
-	let total = mStatNewFrankLoss + mStatNewFrankWin + 1;
-
 	mLevelIndex = -1;	
 	if (mLevelGenerate != null)
 	{
@@ -10466,6 +10557,7 @@ function WorldReset(pFull = true)
 			);			
 			// <RANDOM PICK>
 		}
+	}
 	}
 	// </LOAD LEVEL>
 	
@@ -10701,6 +10793,24 @@ function WorldReset(pFull = true)
 				break;
 			}
 
+			case WorldType.Chunk:
+			{
+				solved = WorldResetChunk(pFull, mWorldExtreme);
+				break;
+			}
+
+			case WorldType.Snake4x4:
+			{
+				solved = WorldResetSnake4x4(pFull, mWorldExtreme);
+				break;
+			}
+
+			case WorldType.Patch4x4:
+			{
+				solved = WorldResetPatch4x4(pFull, mWorldExtreme);
+				break;
+			}
+
 			default:
 				console.error("WorldReset() Unhandled mWorldType enumeration: " + mWorldType);
 				break;		
@@ -10737,7 +10847,6 @@ function WorldReset(pFull = true)
 				}
 
 				mState = SolveUpdateStart();
-
 				window.setTimeout(WorldResetUpdate, 15);
 			}
 		}
@@ -11183,6 +11292,19 @@ function WorldStrokeStyleSet()
 	// </LEVEL COLOUR>
 }
 
+function WorldTileColourSet()
+{
+	mWorldLevelTileColorRFinal = 255; mWorldLevelTileColorGFinal = 255; mWorldLevelTileColorBFinal = 255;
+	if (mUrineState > 0)
+	{
+		mWorldLevelTileColorRFinal = 255; mWorldLevelTileColorGFinal = 255; mWorldLevelTileColorBFinal = 192;
+	}
+	else if (mTalkStates[TalkType.fail] == 0)
+	{
+		mWorldLevelTileColorRFinal = 192; mWorldLevelTileColorGFinal = 192; mWorldLevelTileColorBFinal = 192;
+	}
+}
+
 function WorldResetFinish()
 {
 	/*
@@ -11197,7 +11319,7 @@ function WorldResetFinish()
 	   (mStatePushPopped will be hit)
 	   
 	mState can be 0 (1+ solutions, still finding more) or 2 (1+ solutions, done finding more even if more exist), assuming NOT 1
-	If Level is loaded in from JSON, all of that info has been transferred into mPlayfield including .finalTile.
+	If Level is loaded in from JSON, all of that info has been transferred into mPlayField including .finalTile.
 	This method is unaware whether it received a dynamically generated level or a level from JSON (and it doesn't care)
 	*/
 	
@@ -11256,7 +11378,6 @@ function WorldResetFinish()
 
 	CurtainRefresh(2);	
 	WorldPlayFieldResize();	
-	TilesWhite();
 	mCanvasMain.style.opacity = 1;
 
 	mTileTotalRemember = mTileTotal;   // Must be set BEFORE TILEEXTRA. SolveUpdate uses to determine whether a solution was for a FULL playfield or partial
@@ -11285,31 +11406,38 @@ function WorldResetFinish()
 	// </FINALTILE>
 
 	// <TILEEXTRA>
-	// we have a lovely perfect mPlayfield, let's add some extra tiles (VERY slow process)
+	// we have a lovely perfect mPlayField, let's add some extra tiles (VERY slow process)
 	// Consider adding (!mStatePushPopped == true), although I've seen Extras addedd to levels with this?!?!
 	// if there are a TON of solutions then it's a very dense level with lots of possibilities - it will take too long to determine failure, and adding extra tiles to a mass of tiles isn't very fun (hard to deduce)
 	if (
 		(mLevelGenerate != null)
 		&& ((mLevelGenerate == "fix") || (mLevelGenerate[3]))
 		&& (mSolutions < 200000)
-		&& ((mLevelIndex == -1) || (mLevels[mLevelIndex][15] == null))
+		// && ((mLevelIndex == -1) || (mLevels[mLevelIndex][15] == null))
 	)
 	{
 		// Talk item in 5th column happens BEFORE gameplay starts, so tiles can be rebuilt if needed.
 		mTalkStates[TalkType.tileExtra] = 5;   // formerly 10
+
+		// SolveUpdateStart will be called, obliterating state. Preserve and restore
+		let preserveState = mState;
+		let preservePushPopped = mStatePushPopped;
+		let preserveSolutions = mSolutions;
+		let preserveSolveUpdateCount = mSolveUpdateCount;
 	
 		mState = 0;   // was formerly 2. SolveUpdateStart rightfully complains if it's not at 0.
-		let preserveSolutions = mSolutions;
 		// WorldResetIncrease(1);   // add padding where extra tiles can appear - needed for small levels BUT increases complexity so abandoned.
 		// Extra tiles are NOT on.
 		var extraCount = TalkTypeExtraGenerateStart();   // attempts to add tile. does NOT touch mTileTotal. Adds tiles to mPlayField BUT with .extra caveat (so SolveUpdate doesn't count them)
 		// WorldResetShift();   // mTileXCount and mTileYCount include ALL the Extra tiles added (whether they're showing or not). If we don't apply all the extra Tiles, LevelFileIntoMemory removes extra rows/columns			
+
+		mState = preserveState;
+		mStatePushPopped = preservePushPopped;
 		mSolutions = preserveSolutions;
-		mState = 2;
-		mSolveUpdateCount = 0;
+		mSolveUpdateCount = preserveSolveUpdateCount;
 	}
 	// </TILEEXTRA>
-	
+
 	if (mUrineState != 0) { console.log("mUrineState == " + mUrineState);	}
 
 	let holdErrorMessage = WorldCheck();
@@ -11318,12 +11446,13 @@ function WorldResetFinish()
 	
 	if (mLevelGenerate == "fix")
 	{
+		TilesWhite();
 		mWeekdayLevelsRemaining--;   // level is fixed, this moves to the next one.
 		window.setTimeout(WorldResetNew, 15, true); return;
 	}	
 	else if (mLevelGenerate != null)
 	{
-		// good
+		TilesWhite();
 		mLevelGenerateCount++;
 		if (mLevelGenerateCount < 40) { window.setTimeout(WorldReset, 15, true); return; } else { console.log("LevelGenerate " + mLevelGenerateCount + " DONE!"); } 
 	}	
@@ -11473,7 +11602,7 @@ function WorldResetFinish()
 	// <TALKSTATES>
 	TalkTypeLightSet(mTalkStates[TalkType.light]);
 	TalkTypeControlSet(mTalkStates[TalkType.control]);
-	TalkTypeFailSet(mTalkStates[TalkType.fail], false);
+	TalkTypeFailSet(mTalkStates[TalkType.fail], false);   // WorldTileColourSet
 	TalkTypeInvisibleSet(mTalkStates[TalkType.tileInvisible], true);
 	TalkTypeRandomFailSet();
 	TalkTypeFinishTileSet(mTalkStates[TalkType.finishTile], true);
@@ -11497,6 +11626,8 @@ function WorldResetFinish()
 	if (mWorldMode == 0)
 	{
 		// if level was picked from the file (and not dymacially generated), don't pick it again
+		// I used to record this permanently in a cookie, BUT it becomes QUITE LARGE.
+		// Plus playing the same level again is ACTUALLY FUN
 		if (mLevelIndex > -1)
 		{
 			// reset all the Levels we tried to use but failed (maybe next time)
@@ -11506,7 +11637,8 @@ function WorldResetFinish()
 	}
 
 	WorldStrokeStyleSet();
-	
+	TilesWhite();
+
 	// CopyLevelToClipboard();   // on mobile ONLY works if we're in OnTouchEnd event, otherwise ignored (only shows 1st level, not others)
 	let hold = (mLevelIndex == 0) ? "Start" : "";	
 	GoogleAnalytics(hold);
@@ -11886,7 +12018,8 @@ function OnLoad2(pEvent)
 	
 	if (mLevelGenerate != null)
 	{
-		mSolveCrazyPlayFields = new Array(1300000);
+		mSolveCrazyPlayFields = new Array(1500000);   // GREAT: 2024-11-06. With duplicates kept. Otherwise it will explore forever.
+		
 		// mSolveCrazyPlayFields = new Array(1750000);   // works BUT takes forever to determine failure, especially important during Extra
 		// in order to prove level is impossible, must exhaust every tile possibility. the higher this array the more possibilities that can be explored
 		// (the drawback is it can take a looooong time to prove this)
@@ -11897,7 +12030,7 @@ function OnLoad2(pEvent)
 	}
 	else
 	{
-		mSolveCrazyPlayFields = new Array(5000);   // changed 2024-09-04. used to be 60000 - needlessly kills iPhone battery
+		mSolveCrazyPlayFields = new Array(6000);   // changed 2024-09-04. used to be 60000 - needlessly kills iPhone battery
 		// while playing SolveUpdate uses 5000 to determine 100% fail. Ambiguous for huge playfields, great once player reduces them
 		// also allows levels to be procedurally generated while playing (between levels) but we need to stop this POST HASTE
 		// mSolveCrazyPlayFields = new Array(60000);   // needed for initial playfield generation
@@ -12903,7 +13036,7 @@ function WorldUpdate(pTimeStamp = 100)
 				}
 				if (mStatTopRightDiv.innerHTML != innerHTML) { mStatTopRightDiv.innerHTML = innerHTML; }
 			}
-		}
+		}		
 		// </SOLUTIONS DISPLAY>
 
 		// <WORLDSTATE == 2>
@@ -13105,6 +13238,7 @@ function WorldUpdate(pTimeStamp = 100)
 								(tile.colorTempTime == 0)
 								&& ((tile.colorR == tile.colorRFinal) && (tile.colorG == tile.colorGFinal) && (tile.colorB == tile.colorBFinal))
 								&& (tile.extra == 0)
+								&& (tile.pink == 0)
 							)
 							{
 								mPlayFieldDivs[xyIndex].solved = 0;
@@ -13176,7 +13310,10 @@ function WorldUpdate(pTimeStamp = 100)
 						for (var xyIndex = 0; xyIndex < mPlayFieldDivs.length; xyIndex++)
 						{
 							// && (mPlayFieldDivs[xyIndex].finishTileState == 0)
-							if (mPlayFieldDivs[xyIndex].solved > 1500)   // 10:1500 50:7000
+							if (
+								(mPlayFieldDivs[xyIndex].solved > 1500)
+								&& (mPlayFieldDivs[xyIndex].pink == 0)
+							)
 							{
 								mPlayFieldDivs[xyIndex].solved = 0;
 								// Could call TileSetColorTemp, but this happens ALL the time so "inlining" it
