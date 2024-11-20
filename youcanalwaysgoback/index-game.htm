@@ -10126,7 +10126,7 @@ function WorldReset(pFull = true)
 	// if levels have not arrived yet, wait.
 	if (mLevels == null) { window.setTimeout(WorldReset, 500); return; }
 
-	if (mTalkIndex => 30)
+	if (mTalkIndex >= 30)
 	{
 		MenuFrankEnd();
 		return;
